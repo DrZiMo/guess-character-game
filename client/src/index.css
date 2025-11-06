@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@theme {
+    --color-primary: #FFA500;
+    --color-dark-primary: #DD8F00;
+    --color-almost-black: rgba(0, 0, 0, 0.25)
+}
+
+@layer {
+    body {
+        font-family: "Press Start 2P", system-ui;
+        @apply overflow-x-hidden
+    }
+
+    .primary-btn,
+    .secondary-btn {
+        @apply w-full rounded-lg py-5 text-xl transition cursor-pointer;
+        box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.25)
+    }
+
+    .primary-btn {
+        @apply bg-primary text-white hover:bg-dark-primary disabled:bg-dark-primary
+    }
+
+    .secondary-btn {
+        @apply bg-white text-primary hover:bg-gray-300;
+    }
+}

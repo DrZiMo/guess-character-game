@@ -14,14 +14,14 @@ io.on('connection', (socket) => {
   console.log('Player connected', socket.id)
 
   // create room
-  socket.on('createRoom', (name) => {
+  socket.on('createRoom', (name, avatar) => {
     let code
     do code = generateCode()
     while (rooms[code])
 
     rooms[code] = {
       creatorId: socket.id,
-      players: [{ id: socket.id, name, word: null }],
+      players: [{ id: socket.id, name, word: null, avatar }],
       started: false,
     }
     socket.join(code)
@@ -30,13 +30,13 @@ io.on('connection', (socket) => {
   })
 
   // join room
-  socket.on('joinRoom', ({ code, name }) => {
+  socket.on('joinRoom', ({ code, name, avatar }) => {
     const room = rooms[code]
 
     if (!room) return socket.emit('roomNotFound')
     if (room.players.length > 2) return socket.emit('roomFull')
 
-    room.players.push({ id: socket.id, name })
+    room.players.push({ id: socket.id, name, avatar, word: null })
 
     // notify players
     io.to(code).emit('playerJoined', room.players)

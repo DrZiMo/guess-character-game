@@ -1,16 +1,15 @@
 import { useNavigate } from 'react-router'
 import headerText from '/Room.png'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { avatars, socket } from '../constants'
 import { useGameStore } from '../store/useGameStore'
 import AvatarPicker from '../components/AvatarPicker'
 import ErrorMessage from '../components/ErrorMessage'
-import { useEffect } from 'react'
 
 const Join = () => {
   const navigate = useNavigate()
-  const [nameError, setNameError] = useState()
-  const [codeError, setCodeError] = useState()
+  const [nameError, setNameError] = useState('')
+  const [codeError, setCodeError] = useState('')
   const [code, setRoomCode] = useState('')
   const [nickName, setNickname] = useState('')
   const [avatar, setAvatar] = useState(avatars[8])
@@ -18,21 +17,35 @@ const Join = () => {
   const { setCode, setPlayers } = useGameStore()
 
   useEffect(() => {
-    console.log('in the useEffect')
     const handlePlayerJoined = (players) => {
-      console.log('in the function')
       setPlayers(players)
       setCode(code)
-
       navigate('/room?u=player')
-      console.log('Navigating ...')
+    }
+
+    const handleRoomFull = () => {
+      setCodeError('Room is full')
+    }
+
+    const handleRoomNotFound = () => {
+      setCodeError('Room not found')
     }
 
     socket.on('playerJoined', handlePlayerJoined)
-    return () => socket.off('playerJoined', handlePlayerJoined)
+    socket.on('roomFull', handleRoomFull)
+    socket.on('roomNotFound', handleRoomNotFound)
+
+    return () => {
+      socket.off('playerJoined', handlePlayerJoined)
+      socket.off('roomFull', handleRoomFull)
+      socket.off('roomNotFound', handleRoomNotFound)
+    }
   }, [code, navigate, setCode, setPlayers])
 
   const handleJoin = () => {
+    setNameError('')
+    setCodeError('')
+
     if (!nickName.trim()) return setNameError('Enter your nickname')
     if (!code.trim()) return setCodeError('Enter the code')
 
@@ -68,6 +81,7 @@ const Join = () => {
           type='text'
           placeholder='Nickname'
           autoComplete='false'
+          value={nickName}
           onChange={(e) => setNickname(e.target.value)}
           className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
         />
@@ -76,6 +90,7 @@ const Join = () => {
           type='text'
           placeholder='Code'
           autoComplete='false'
+          value={code}
           onChange={(e) => setRoomCode(e.target.value)}
           className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
         />

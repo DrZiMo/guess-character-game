@@ -30,3 +30,5 @@ export const avatars = seeds.map((seed) =>
     scale: 100,
   }).toDataUri()
 )
+
+export const toastId = 'toast123'

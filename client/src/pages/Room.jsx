@@ -3,23 +3,27 @@ import { useGameStore } from '../store/useGameStore'
 import { useEffect } from 'react'
 import { socket } from '../constants'
 import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 
 const Room = () => {
   const { roomCode, img } = useGameStore()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [players, setPlayers] = useState([])
 
   useEffect(() => {
-    const handlePlayerJoined = (players) => {
-      setPlayers(players)
+    if (!roomCode) {
+      navigate('/')
+      return
     }
+
+    const handlePlayerJoined = (players) => setPlayers(players)
 
     socket.on('playerJoined', handlePlayerJoined)
+    return () => socket.off('playerJoined', handlePlayerJoined)
+  }, [roomCode, navigate])
 
-    return () => {
-      socket.off('playerJoined', handlePlayerJoined)
-    }
-  }, [])
-
+  const isCreator = searchParams.get('u') === 'creator'
   const otherPlayer = players?.find((p) => p.id !== 1)
 
   return (
@@ -39,9 +43,11 @@ const Room = () => {
               />
               <p className='text-xl'>{otherPlayer.name}</p>
             </div>
-            <div>
-              <button className='primary-btn'>Start</button>
-            </div>
+            {isCreator ? (
+              <div>
+                <button className='primary-btn'>Start</button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className='my-12'>waiting player ...</div>

@@ -4,7 +4,6 @@ const AvatarPicker = ({ onSelect, show, setShow, avatars }) => {
   const pickerRef = useRef(null)
   const [selected, setSelected] = useState(null)
 
-  // Close picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {

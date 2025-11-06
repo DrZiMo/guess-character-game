@@ -20,7 +20,7 @@ const Character = () => {
       setCode(code)
       setName(nickName)
       setIsCreator(true)
-      setImg(avatar)
+      setImg(avatar || avatars[7])
 
       navigate('/room?u=creator')
     }
@@ -30,7 +30,7 @@ const Character = () => {
     return () => {
       socket.off('roomCreated', handleRoomCreated)
     }
-  }, [nickName, setIsCreator, setName, setCode, navigate])
+  }, [nickName, setIsCreator, setName, setCode, navigate, setImg, avatar])
 
   const handleCreate = () => {
     if (!nickName.trim()) return setError('Enter your nickname')

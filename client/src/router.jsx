@@ -3,6 +3,7 @@ import App from './App'
 import Start from './pages/Start'
 import NotFound from './pages/NotFound'
 import Character from './pages/Character'
+import Room from './pages/Room'
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
       {
         path: '/character',
         element: <Character />,
+      },
+      {
+        path: '/room',
+        element: <Room />,
       },
     ],
   },

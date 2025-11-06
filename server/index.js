@@ -52,7 +52,13 @@ io.on('connection', (socket) => {
     if (room && room.creatorId === socket.id && room.players.length === 2) {
       room.started = true
       io.to(code).emit('gameStarted', room.players)
-      console.log(`game started on room ${code}`)
+    }
+  })
+
+  socket.on('startClicked', (code) => {
+    const room = rooms[code]
+    if (room && room.creatorId === socket.id && room.players.length === 2) {
+      io.to(code).emit('enterWords', room.players)
     }
   })
 

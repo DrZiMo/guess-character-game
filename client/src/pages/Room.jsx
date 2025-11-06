@@ -15,7 +15,7 @@ const Room = () => {
 
   useEffect(() => {
     if (!roomCode) {
-      navigate('/')
+      navigate('/', { replace: true })
       return
     }
 
@@ -46,14 +46,20 @@ const Room = () => {
       navigate('/')
     }
 
+    const handleEnterWord = () => {
+      navigate('/word')
+    }
+
     socket.on('playerJoined', handlePlayerJoined)
     socket.on('playerLeft', handlePlayerLeft)
     socket.on('roomClosed', handleRoomClosed)
+    socket.on('enterWords', handleEnterWord)
 
     return () => {
       socket.off('playerJoined', handlePlayerJoined)
       socket.off('playerLeft', handlePlayerLeft)
       socket.off('roomClosed', handleRoomClosed)
+      socket.off('enterWords', handleEnterWord)
     }
   }, [roomCode, navigate, isCreator, setPlayers])
 
@@ -69,6 +75,10 @@ const Room = () => {
   const otherPlayer = Array.isArray(currentPlayers)
     ? currentPlayers.find((p) => p && p.id !== socket.id)
     : null
+
+  const handleStart = () => {
+    socket.emit('startClicked', roomCode)
+  }
 
   return (
     <div className='w-full h-full flex flex-col justify-center items-center'>
@@ -100,7 +110,9 @@ const Room = () => {
             </div>
             {isCreator ? (
               <div>
-                <button className='primary-btn'>Start</button>
+                <button className='primary-btn' onClick={handleStart}>
+                  Start
+                </button>
               </div>
             ) : null}
           </div>

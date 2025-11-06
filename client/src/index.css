@@ -19,7 +19,7 @@
     }
 
     .primary-btn {
-        @apply bg-primary text-white hover:bg-dark-primary disabled:bg-dark-primary
+        @apply bg-primary text-white hover:bg-dark-primary disabled:bg-dark-primary disabled:cursor-not-allowed
     }
 
     .secondary-btn {

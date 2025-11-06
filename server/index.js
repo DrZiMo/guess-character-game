@@ -25,6 +25,7 @@ io.on('connection', (socket) => {
       started: false,
     }
     socket.join(code)
+
     socket.emit('roomCreated', code)
     console.log(`${name} created room: ${code}`)
   })
@@ -34,13 +35,14 @@ io.on('connection', (socket) => {
     const room = rooms[code]
 
     if (!room) return socket.emit('roomNotFound')
-    if (room.players.length > 2) return socket.emit('roomFull')
+    if (room.players.length == 2) return socket.emit('roomFull')
 
     room.players.push({ id: socket.id, name, avatar, word: null })
 
-    // notify players
+    socket.join(code)
+
+    // Notify players
     io.to(code).emit('playerJoined', room.players)
-    console.log(room.players)
   })
 
   // start the game 👉 only the creator of the room
@@ -117,8 +119,8 @@ io.on('connection', (socket) => {
       } else {
         const index = room.players.findIndex((p) => p.id === socket.id)
         if (index !== -1) {
-          const name = room.player[index].name
-          room.player[index].splice(index, 1)
+          const name = room.players[index].name
+          room.players.splice(index, 1)
           io.to(code).emit('playerLeft', name)
         }
       }

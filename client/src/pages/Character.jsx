@@ -10,7 +10,7 @@ const Character = () => {
   const navigate = useNavigate()
   const [error, setError] = useState()
   const [nickName, setNickname] = useState('')
-  const [avatar, setAvatar] = useState()
+  const [avatar, setAvatar] = useState(avatars[7])
   const [show, setShow] = useState(false)
   const { setName, setCode, setIsCreator, setImg } = useGameStore()
 
@@ -19,7 +19,7 @@ const Character = () => {
       setCode(code)
       setName(nickName)
       setIsCreator(true)
-      setImg(avatar || avatars[7])
+      setImg(avatar)
 
       navigate('/room?u=creator')
     }

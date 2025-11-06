@@ -6,10 +6,11 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 
 const Room = () => {
-  const { roomCode, img } = useGameStore()
+  const { roomCode, players } = useGameStore()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const [players, setPlayers] = useState([])
+  const [player, setPlayers] = useState([])
+  const isCreator = searchParams.get('u') === 'creator'
 
   useEffect(() => {
     if (!roomCode) {
@@ -17,14 +18,17 @@ const Room = () => {
       return
     }
 
-    const handlePlayerJoined = (players) => setPlayers(players)
+    if (isCreator) {
+      const handlePlayerJoined = (players) => setPlayers(players)
 
-    socket.on('playerJoined', handlePlayerJoined)
-    return () => socket.off('playerJoined', handlePlayerJoined)
-  }, [roomCode, navigate])
+      socket.on('playerJoined', handlePlayerJoined)
+      return () => socket.off('playerJoined', handlePlayerJoined)
+    }
+  }, [roomCode, navigate, isCreator])
 
-  const isCreator = searchParams.get('u') === 'creator'
-  const otherPlayer = players?.find((p) => p.id !== socket.id)
+  const otherPlayer = isCreator
+    ? player?.find((p) => p.id !== socket.id)
+    : players.find((p) => p.id !== socket.id)
 
   return (
     <div className='w-full h-full flex flex-col justify-center items-center'>

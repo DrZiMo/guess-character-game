@@ -15,16 +15,22 @@ const Join = () => {
   const [nickName, setNickname] = useState('')
   const [avatar, setAvatar] = useState(avatars[8])
   const [show, setShow] = useState(false)
-  const { setName, setCode, setIsCreator, setImg, setPlayers } = useGameStore()
+  const { setCode, setPlayers } = useGameStore()
 
   useEffect(() => {
+    console.log('in the useEffect')
     const handlePlayerJoined = (players) => {
+      console.log('in the function')
       setPlayers(players)
-      alert(players)
+      setCode(code)
+
+      navigate('/room?u=player')
+      console.log('Navigating ...')
     }
 
     socket.on('playerJoined', handlePlayerJoined)
-  }, [])
+    return () => socket.off('playerJoined', handlePlayerJoined)
+  }, [code, navigate, setCode, setPlayers])
 
   const handleJoin = () => {
     if (!nickName.trim()) return setNameError('Enter your nickname')

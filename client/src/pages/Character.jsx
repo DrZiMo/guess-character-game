@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import ErrorMessage from '../components/ErrorMessage'
 import headerText from '/Character.png'
-import { useNavigate, useSearchParams } from 'react-router'
+import { useNavigate } from 'react-router'
 import { avatars, socket } from '../constants'
 import { useGameStore } from '../store/useGameStore'
 import AvatarPicker from '../components/AvatarPicker'
 
 const Character = () => {
   const navigate = useNavigate()
-  const [type] = useSearchParams()
   const [error, setError] = useState()
   const [nickName, setNickname] = useState('')
   const [avatar, setAvatar] = useState()
@@ -35,7 +34,7 @@ const Character = () => {
   const handleCreate = () => {
     if (!nickName.trim()) return setError('Enter your nickname')
 
-    socket.emit('createRoom', nickName.trim())
+    socket.emit('createRoom', { name: nickName.trim(), avatar })
   }
 
   return (
@@ -72,7 +71,7 @@ const Character = () => {
           onClick={handleCreate}
           disabled={!nickName.trim()}
         >
-          {type.get('t')}
+          create
         </button>
       </div>
     </div>

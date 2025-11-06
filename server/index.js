@@ -14,7 +14,7 @@ io.on('connection', (socket) => {
   console.log('Player connected', socket.id)
 
   // create room
-  socket.on('createRoom', (name, avatar) => {
+  socket.on('createRoom', ({ name, avatar }) => {
     let code
     do code = generateCode()
     while (rooms[code])
@@ -40,6 +40,7 @@ io.on('connection', (socket) => {
 
     // notify players
     io.to(code).emit('playerJoined', room.players)
+    console.log(room.players)
   })
 
   // start the game 👉 only the creator of the room

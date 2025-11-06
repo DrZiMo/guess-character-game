@@ -24,7 +24,7 @@ const Room = () => {
   }, [roomCode, navigate])
 
   const isCreator = searchParams.get('u') === 'creator'
-  const otherPlayer = players?.find((p) => p.id !== 1)
+  const otherPlayer = players?.find((p) => p.id !== socket.id)
 
   return (
     <div className='w-full h-full flex flex-col justify-center items-center'>
@@ -37,7 +37,7 @@ const Room = () => {
           <div className='w-[80%] mx-auto text-center'>
             <div className='space-y-3 my-12'>
               <img
-                src={img}
+                src={otherPlayer.avatar}
                 alt={otherPlayer.name}
                 className='w-30 h-30 mx-auto'
               />

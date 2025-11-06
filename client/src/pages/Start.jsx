@@ -16,10 +16,7 @@ const Start = () => {
         >
           create
         </button>
-        <button
-          className='secondary-btn'
-          onClick={() => navigate('/character?t=join')}
-        >
+        <button className='secondary-btn' onClick={() => navigate('/join')}>
           join
         </button>
       </div>

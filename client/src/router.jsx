@@ -4,6 +4,7 @@ import Start from './pages/Start'
 import NotFound from './pages/NotFound'
 import Character from './pages/Character'
 import Room from './pages/Room'
+import Join from './pages/Join'
 
 const router = createBrowserRouter([
   {
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
       {
         path: '/room',
         element: <Room />,
+      },
+      {
+        path: '/join',
+        element: <Join />,
       },
     ],
   },

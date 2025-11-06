@@ -5,9 +5,11 @@ export const useGameStore = create((set) => ({
   name: '',
   isCreator: false,
   img: '',
+  players: [],
 
   setCode: (code) => set({ roomCode: code }),
   setName: (name) => set({ name }),
   setIsCreator: (value) => set({ isCreator: value }),
   setImg: (img) => set({ img }),
+  setPlayers: (players) => set({ players }),
 }))

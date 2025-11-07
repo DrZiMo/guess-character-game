@@ -21,7 +21,7 @@ const Character = () => {
       setIsCreator(true)
       setImg(avatar)
 
-      navigate('/room?u=creator')
+      navigate('/room?u=creator', { replace: true })
     }
 
     socket.on('roomCreated', handleRoomCreated)

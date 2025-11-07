@@ -20,7 +20,7 @@ const Join = () => {
     const handlePlayerJoined = (players) => {
       setPlayers(players)
       setCode(code)
-      navigate('/room?u=player')
+      navigate('/room?u=player', { replace: true })
     }
 
     const handleRoomFull = () => {

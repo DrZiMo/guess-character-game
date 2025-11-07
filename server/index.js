@@ -111,6 +111,24 @@ io.on('connection', (socket) => {
     }
   })
 
+  // player want to see result
+  socket.on('seeResult', (code) => {
+    const room = rooms[code]
+    if (!room) return
+
+    room.started = false
+
+    io.to(code).emit('playerSurrend', socket.id)
+  })
+
+  // reveal words
+  socket.on('confirmReveal', (code) => {
+    const room = rooms[code]
+    if (!room) return
+
+    io.to(code).emit('revealResult')
+  })
+
   // disconnect
   socket.on('disconnect', () => {
     for (const [code, room] of Object.entries(rooms)) {

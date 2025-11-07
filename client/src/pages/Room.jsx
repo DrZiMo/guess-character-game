@@ -43,11 +43,11 @@ const Room = () => {
 
     const handleRoomClosed = () => {
       toast.error('Room is closed!', { id: toastId, duration: 1000 })
-      navigate('/')
+      navigate('/', { replace: true })
     }
 
     const handleEnterWord = () => {
-      navigate('/word')
+      navigate('/word', { replace: true })
     }
 
     socket.on('playerJoined', handlePlayerJoined)
@@ -66,7 +66,7 @@ const Room = () => {
   const handleLeaveRoom = () => {
     if (roomCode) {
       socket.emit('leaveRoom', roomCode)
-      navigate('/')
+      navigate('/', { replace: true })
     }
   }
 

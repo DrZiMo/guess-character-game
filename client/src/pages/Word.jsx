@@ -23,7 +23,7 @@ const Word = () => {
       setPlayers(players)
       setIsLoading(false)
       socket.emit('gameStart', roomCode)
-      navigate('/game')
+      navigate('/game', { replace: true })
     }
 
     socket.on('wordsSet', handleWordsSet)
@@ -31,7 +31,7 @@ const Word = () => {
     return () => {
       socket.off('wordsSet', handleWordsSet)
     }
-  }, [roomCode, name, navigate])
+  }, [roomCode, name, navigate, setPlayers])
 
   const handleSubmitWord = () => {
     setError('')

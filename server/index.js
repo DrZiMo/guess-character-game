@@ -11,8 +11,6 @@ const io = new Server(server, { cors: { origin: 'http://localhost:5175' } })
 const rooms = {}
 
 io.on('connection', (socket) => {
-  console.log('Player connected', socket.id)
-
   // create room
   socket.on('createRoom', ({ name, avatar }) => {
     let code
@@ -27,7 +25,6 @@ io.on('connection', (socket) => {
     socket.join(code)
 
     socket.emit('roomCreated', code)
-    console.log(`${name} created room: ${code}`)
   })
 
   // join room
@@ -49,10 +46,8 @@ io.on('connection', (socket) => {
   socket.on('gameStart', (code) => {
     const room = rooms[code]
 
-    if (room && room.creatorId === socket.id && room.players.length === 2) {
-      room.started = true
-      io.to(code).emit('gameStarted', room.players)
-    }
+    room.started = true
+    io.to(code).emit('gameStarted')
   })
 
   socket.on('startClicked', (code) => {
@@ -72,7 +67,7 @@ io.on('connection', (socket) => {
 
     // check if both words are set
     if (room.players.every((p) => p.word)) {
-      io.to(code).emit('wordsSet')
+      io.to(code).emit('wordsSet', room.players)
     }
   })
 

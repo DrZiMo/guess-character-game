@@ -11,7 +11,7 @@ const Word = () => {
   const [word, setWord] = useState('')
   const [error, setError] = useState('')
   const [loading, setIsLoading] = useState(false)
-  const { roomCode, name } = useGameStore()
+  const { roomCode, name, setPlayers } = useGameStore()
 
   useEffect(() => {
     if (!roomCode) {
@@ -19,8 +19,11 @@ const Word = () => {
       return
     }
 
-    const handleWordsSet = () => {
+    const handleWordsSet = (players) => {
+      setPlayers(players)
       setIsLoading(false)
+      socket.emit('gameStart', roomCode)
+      navigate('/game')
     }
 
     socket.on('wordsSet', handleWordsSet)
@@ -82,8 +85,11 @@ const Word = () => {
           onClick={handleSubmitWord}
           disabled={!word.trim() || loading}
         >
-          {loading ? 'Waiting for other player...' : 'Submit'}
+          {loading ? 'submitted' : 'submit'}
         </button>
+        {loading ? (
+          <p className='text-white'>Waiting for the other player...</p>
+        ) : null}
       </div>
     </div>
   )

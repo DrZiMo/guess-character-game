@@ -6,6 +6,7 @@ import Character from './pages/Character'
 import Room from './pages/Room'
 import Join from './pages/Join'
 import Word from './pages/Word'
+import Game from './pages/Game'
 
 const router = createBrowserRouter([
   {
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
       {
         path: '/word',
         element: <Word />,
+      },
+      {
+        path: '/game',
+        element: <Game />,
       },
     ],
   },

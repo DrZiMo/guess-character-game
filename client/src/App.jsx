@@ -12,7 +12,7 @@ const App = () => {
           className='w-full h-full object-cover grayscale-100 opacity-30'
         />
       </div>
-      <div className='w-screen sm:w-[600px] mx-0 sm:mx-auto h-screen'>
+      <div className='w-screen lg:w-[600px] mx-0 sm:mx-auto h-screen'>
         <div className='relative w-full h-full'>
           <div className='absolute w-full h-full'>
             <Outlet />

@@ -43,7 +43,7 @@ const Character = () => {
         <img src={headerText} alt='Header Text' />
       </div>
       <div className='flex flex-col w-[75%] gap-3 mt-10'>
-        <div className='relative'>
+        <div className='relative -space-y-5'>
           <div>
             <img
               src={avatar || avatars[7]}

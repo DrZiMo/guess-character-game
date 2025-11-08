@@ -6,7 +6,9 @@ import { generateCode } from './lib/index.js'
 const app = express()
 const server = http.createServer(app)
 
-const io = new Server(server, { cors: { origin: 'http://localhost:5175' } })
+const io = new Server(server, {
+  cors: { origin: ['http://localhost:5175', 'https://guess-bice.vercel.app'] },
+})
 
 const rooms = {}
 

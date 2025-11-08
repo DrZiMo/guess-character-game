@@ -2,7 +2,8 @@ import { io } from 'socket.io-client'
 import { createAvatar } from '@dicebear/core'
 import { personas } from '@dicebear/collection'
 
-export const backendURL = 'http://localhost:3000'
+// export const backendURL = 'http://localhost:3000'
+export const backendURL = 'https://guess-character-game.onrender.com'
 
 export const socket = io(backendURL)
 

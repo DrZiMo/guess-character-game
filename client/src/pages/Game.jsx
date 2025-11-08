@@ -95,7 +95,10 @@ const Game = () => {
             ) : null}
           </div>
           <div className='space-y-2 flex flex-col items-center'>
-            <div className='w-fit cursor-pointer' onClick={handleClick}>
+            <div
+              className={`w-fit ${isShows ? '' : 'cursor-pointer'}`}
+              onClick={isShows ? null : handleClick}
+            >
               <Card text={isShows ? otherPlayer.word : 'none'} flip={true} />
             </div>
             <p>{currentPlayer.name}</p>

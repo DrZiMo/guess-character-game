@@ -5,14 +5,14 @@ import { Toaster } from 'react-hot-toast'
 
 const App = () => {
   return (
-    <div className='w-screen h-screen'>
+    <div className='w-screen h-screen relative'>
       <div className='w-full h-screen absolute'>
         <img
           src={backgroundImage}
           className='w-full h-full object-cover grayscale-100 opacity-30'
         />
       </div>
-      <div className='w-screen lg:w-[600px] mx-0 sm:mx-auto h-screen'>
+      <div className='w-full sm:w-[600px] left-0 sm:left-1/2 sm:-translate-x-1/2 h-full absolute'>
         <div className='relative w-full h-full'>
           <div className='absolute w-full h-full'>
             <Outlet />

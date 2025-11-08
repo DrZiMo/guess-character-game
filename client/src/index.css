@@ -9,6 +9,7 @@
 @layer {
     body {
         font-family: "Press Start 2P", system-ui;
+        box-sizing: border-box;
         @apply overflow-x-hidden
     }
 

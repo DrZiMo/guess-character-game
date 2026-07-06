@@ -13,10 +13,20 @@ const App = () => {
         />
       </div>
       <div className='w-full sm:w-[600px] left-0 sm:left-1/2 sm:-translate-x-1/2 h-full absolute'>
-        <div className='relative w-full h-full'>
-          <div className='absolute w-full h-full'>
+        <div className='relative w-full h-full border border-red-500'>
+          <div className='absolute w-full h-full flex flex-col py-5'>
             <Outlet />
             <Toaster />
+            <div className='text-center text-white'>
+              By{' '}
+              <a
+                target='_blank'
+                href='https://linktr.ee/zuhaibpro'
+                className='text-blue-200 hover:text-blue-600'
+              >
+                zuhaib_pro
+              </a>
+            </div>
           </div>
           <img src={menuImage} className='w-full h-full object-cover z-[-1]' />
         </div>

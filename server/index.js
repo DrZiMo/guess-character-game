@@ -69,6 +69,14 @@ io.on('connection', (socket) => {
 
     // check if both words are set
     if (room.players.every((p) => p.word)) {
+      const [p1, p2] = room.players
+
+      if (p1.word === p2.word) {
+        room.players.forEach((p) => (p.word = null))
+        io.to(code).emit('sameWordError')
+        return
+      }
+
       io.to(code).emit('wordsSet', room.players)
     }
   })

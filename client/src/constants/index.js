@@ -2,8 +2,8 @@ import { io } from 'socket.io-client'
 import { createAvatar } from '@dicebear/core'
 import { personas } from '@dicebear/collection'
 
-// export const backendURL = 'http://localhost:3000'
-export const backendURL = 'https://guess-character-game.onrender.com'
+export const backendURL = 'http://localhost:3000'
+// export const backendURL = 'https://guess-character-game.onrender.com'
 
 export const socket = io(backendURL)
 
@@ -29,7 +29,7 @@ export const avatars = seeds.map((seed) =>
     mouth: ['bigSmile', 'frown', 'smile', 'smirk', 'surprised'],
     radius: 50,
     scale: 100,
-  }).toDataUri()
+  }).toDataUri(),
 )
 
 export const toastId = 'toast123'

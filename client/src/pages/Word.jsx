@@ -26,10 +26,18 @@ const Word = () => {
       navigate('/game', { replace: true })
     }
 
+    const handleSameWordError = () => {
+      setIsLoading(false)
+      setWord('')
+      setError('You both picked the same word. Try a different one!')
+    }
+
     socket.on('wordsSet', handleWordsSet)
+    socket.on('sameWordError', handleSameWordError)
 
     return () => {
       socket.off('wordsSet', handleWordsSet)
+      socket.off('sameWordError', handleSameWordError)
     }
   }, [roomCode, name, navigate, setPlayers])
 

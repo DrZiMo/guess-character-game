@@ -13,7 +13,7 @@ const App = () => {
         />
       </div>
       <div className='w-full sm:w-[600px] left-0 sm:left-1/2 sm:-translate-x-1/2 h-full absolute'>
-        <div className='relative w-full h-full border border-red-500'>
+        <div className='relative w-full h-full'>
           <div className='absolute w-full h-full flex flex-col py-5'>
             <Outlet />
             <Toaster />

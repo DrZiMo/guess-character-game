@@ -1,10 +1,20 @@
-import { Outlet } from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
 import menuImage from '/menu-img.jpg'
 import backgroundImage from '/background_patter.avif'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
+import { useEffect } from 'react'
 
 const App = () => {
+  const navigate = useNavigate()
+  const isUnderConstruction = true
+
+  useEffect(() => {
+    if (isUnderConstruction) {
+      navigate('/under-construction')
+    }
+  }, [isUnderConstruction, navigate])
+
   return (
     <div className='w-screen h-screen relative'>
       <div className='w-full h-screen absolute'>

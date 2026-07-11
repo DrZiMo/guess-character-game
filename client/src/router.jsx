@@ -9,6 +9,7 @@ import Word from './pages/Word'
 import Game from './pages/Game'
 import JoinType from './pages/JoinType'
 import JoinOnline from './pages/JoinOnline'
+import UnderConstraction from './pages/UnderConstraction'
 
 const router = createBrowserRouter([
   {
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
       {
         path: '/game',
         element: <Game />,
+      },
+      {
+        path: '/under-construction',
+        element: <UnderConstraction />,
       },
     ],
   },

@@ -2,6 +2,7 @@ import express from 'express'
 import { Server } from 'socket.io'
 import http from 'http'
 import { generateCode } from './lib/index.js'
+import { Player } from './models/player.models.js'
 
 const app = express()
 const server = http.createServer(app)
@@ -13,35 +14,87 @@ const io = new Server(server, {
 const rooms = {}
 
 io.on('connection', (socket) => {
+  // register
+  socket.on('register', async ({ browserId }) => {
+    const player = await Player.findOneAndUpdate(
+      { browserId },
+      { isOnline: true },
+      { new: true },
+    )
+
+    socket.playerId = player._id
+
+    io.emit('playerStatusChanged', {
+      playerId: player._id,
+      isOnline: true,
+    })
+  })
+
   // create room
-  socket.on('createRoom', ({ name, avatar }) => {
-    let code
-    do code = generateCode()
-    while (rooms[code])
+  socket.on('createRoom', async () => {
+    try {
+      let code
 
-    rooms[code] = {
-      creatorId: socket.id,
-      players: [{ id: socket.id, name, word: null, avatar }],
-      started: false,
+      do {
+        code = generateCode()
+      } while (await Room.findOne({ code }))
+
+      const room = await Room.create({
+        playerOneId: socket.playerId,
+        code,
+      })
+
+      rooms[code] = {
+        roomId: room._id,
+        creatorSocketId: socket.id,
+        players: [
+          {
+            playerId: socket.playerId,
+            socketId: socket.id,
+            word: null,
+          },
+        ],
+        started: false,
+      }
+
+      socket.join(room._id.toString())
+
+      socket.emit('roomCreated', {
+        roomId: room._id,
+        code,
+      })
+    } catch (error) {
+      console.error(error)
+      socket.emit('roomCreationFailed')
     }
-    socket.join(code)
-
-    socket.emit('roomCreated', code)
   })
 
   // join room
-  socket.on('joinRoom', ({ code, name, avatar }) => {
-    const room = rooms[code]
+  socket.on('joinRoom', async ({ code, playerId }) => {
+    const dbRoom = await Room.findOne({ code })
 
-    if (!room) return socket.emit('roomNotFound')
-    if (room.players.length == 2) return socket.emit('roomFull')
+    if (!dbRoom) {
+      return socket.emit('roomNotFound')
+    }
 
-    room.players.push({ id: socket.id, name, avatar, word: null })
+    if (dbRoom.playerTwoId) {
+      return socket.emit('roomFull')
+    }
 
-    socket.join(code)
+    dbRoom.playerTwoId = playerId
+    dbRoom.numberOfPlayer = 2
 
-    // Notify players
-    io.to(code).emit('playerJoined', room.players)
+    await dbRoom.save()
+
+    rooms[code].players.push({
+      playerId,
+      socketId: socket.id,
+      word: null,
+    })
+
+    socket.join(room._id.toString())
+
+    io.to(code.toString()).emit('playerJoined', rooms[code].players)
   })
 
   // start the game 👉 only the creator of the room
@@ -54,7 +107,11 @@ io.on('connection', (socket) => {
 
   socket.on('startClicked', (code) => {
     const room = rooms[code]
-    if (room && room.creatorId === socket.id && room.players.length === 2) {
+    if (
+      room &&
+      room.creatorSocketId === socket.id &&
+      room.players.length === 2
+    ) {
       io.to(code).emit('enterWords', room.players)
     }
   })
@@ -64,7 +121,7 @@ io.on('connection', (socket) => {
     const room = rooms[code]
     if (!room) return
 
-    const player = room.players.find((p) => p.id === socket.id)
+    const player = room.players.find((p) => p.socketId === socket.id)
     if (player) player.word = word.trim().toLowerCase()
 
     // check if both words are set
@@ -106,7 +163,7 @@ io.on('connection', (socket) => {
     const room = rooms[code]
     if (!room) return
 
-    const index = room.players.findIndex((p) => p.id === socket.id)
+    const index = room.players.findIndex((p) => p.socketId === socket.id)
     if (index !== -1) {
       const name = room.players[index].name
       room.players.splice(index, 1)
@@ -115,7 +172,7 @@ io.on('connection', (socket) => {
     }
 
     // close the room if the creator leaves
-    if (room.creatorId === socket.id) {
+    if (room.creatorSocketId === socket.id) {
       io.to(code).emit('roomClosed')
       delete rooms[code]
     }
@@ -139,14 +196,55 @@ io.on('connection', (socket) => {
     io.to(code).emit('revealResult')
   })
 
+  // send message
+  socket.on('sendMessage', async ({ roomId, text }) => {
+    try {
+      const message = await Message.create({
+        roomId,
+        senderId: socket.playerId,
+        text,
+      })
+
+      const populatedMessage = await Message.findById(message._id).populate(
+        'senderId',
+      )
+
+      io.to(roomId.toString()).emit('newMessage', populatedMessage)
+    } catch (error) {
+      console.log(error)
+    }
+  })
+
+  // load message
+  socket.on('loadMessages', async ({ roomId }) => {
+    const messages = await Message.find({
+      roomId,
+    })
+      .populate('senderId')
+      .sort({ createdAt: 1 })
+
+    socket.emit('messagesLoaded', messages)
+  })
+
   // disconnect
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
+    if (!socket.playerId) return
+
+    await Player.findByIdAndUpdate(socket.playerId, {
+      isOnline: false,
+      lastSeen: new Date(),
+    })
+    io.emit('playerStatusChanged', {
+      playerId: socket.playerId,
+      isOnline: false,
+    })
+
     for (const [code, room] of Object.entries(rooms)) {
-      if (room.creatorId === socket.id) {
+      if (room.creatorSocketId === socket.id) {
         io.to(code).emit('roomClosed')
         delete rooms[code]
       } else {
-        const index = room.players.findIndex((p) => p.id === socket.id)
+        const index = room.players.findIndex((p) => p.socketId === socket.id)
         if (index !== -1) {
           const name = room.players[index].name
           room.players.splice(index, 1)

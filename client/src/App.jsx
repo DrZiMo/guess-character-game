@@ -2,7 +2,7 @@ import { Outlet } from 'react-router'
 import menuImage from '/menu-img.jpg'
 import backgroundImage from '/background_patter.avif'
 import { Toaster } from 'react-hot-toast'
-import { Analytics } from '@vercel/analytics/next'
+import { Analytics } from '@vercel/analytics/react'
 
 const App = () => {
   return (

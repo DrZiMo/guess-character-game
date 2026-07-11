@@ -2,6 +2,7 @@ import { Outlet } from 'react-router'
 import menuImage from '/menu-img.jpg'
 import backgroundImage from '/background_patter.avif'
 import { Toaster } from 'react-hot-toast'
+import { Analytics } from '@vercel/analytics/next'
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
           <div className='absolute w-full h-full flex flex-col py-5'>
             <Outlet />
             <Toaster />
+            <Analytics />
             <div className='text-center text-white'>
               By{' '}
               <a

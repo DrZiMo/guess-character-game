@@ -7,6 +7,8 @@ import Room from './pages/Room'
 import Join from './pages/Join'
 import Word from './pages/Word'
 import Game from './pages/Game'
+import JoinType from './pages/JoinType'
+import JoinOnline from './pages/JoinOnline'
 
 const router = createBrowserRouter([
   {
@@ -24,6 +26,14 @@ const router = createBrowserRouter([
       {
         path: '/room',
         element: <Room />,
+      },
+      {
+        path: '/join-type',
+        element: <JoinType />,
+      },
+      {
+        path: '/join-online',
+        element: <JoinOnline />,
       },
       {
         path: '/join',

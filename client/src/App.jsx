@@ -24,7 +24,7 @@ const App = () => {
                 href='https://linktr.ee/zuhaibpro'
                 className='text-blue-200 hover:text-blue-600'
               >
-                zuhaib_pro
+                zuhaib.pro
               </a>
             </div>
           </div>

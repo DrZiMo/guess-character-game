@@ -13,6 +13,7 @@ const roomSchema = new mongoose.Schema(
     },
     code: { type: Number, required: true, unique: true },
     numberOfPlayer: { type: Number, default: 1 },
+    category: { type: String, required: true },
     isStarted: { type: Boolean, default: false },
   },
   { timestamps: true },

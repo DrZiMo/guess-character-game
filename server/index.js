@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
   })
 
   // create room
-  socket.on('createRoom', async () => {
+  socket.on('createRoom', async ({ category }) => {
     try {
       let code
 
@@ -42,6 +42,7 @@ io.on('connection', (socket) => {
       const room = await Room.create({
         playerOneId: socket.playerId,
         code,
+        category,
       })
 
       rooms[code] = {

@@ -35,6 +35,12 @@ const JoinType = () => {
             category={'players'}
             noPlayers={1}
           />
+          <RoomCard
+            avatar={avatars[2]}
+            name={'faysal'}
+            category={'players'}
+            noPlayers={1}
+          />
         </div>
       </div>
     </div>

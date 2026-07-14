@@ -7,7 +7,7 @@ import { useEffect } from 'react'
 
 const App = () => {
   const navigate = useNavigate()
-  const isUnderConstruction = true
+  const isUnderConstruction = false
 
   useEffect(() => {
     if (isUnderConstruction) {
@@ -16,7 +16,7 @@ const App = () => {
   }, [isUnderConstruction, navigate])
 
   return (
-    <div className='w-screen h-screen relative'>
+    <div className='w-screen h-screen overflow-y-hidden relative'>
       <div className='w-full h-screen absolute'>
         <img
           src={backgroundImage}

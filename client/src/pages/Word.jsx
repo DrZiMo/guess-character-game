@@ -69,11 +69,14 @@ const Word = () => {
         <img src={headerText} alt='Header Text' />
         <p className='text-white text-2xl'>{roomCode}</p>
       </div>
+      <div className='mt-5'>
+        <p className='text-white text-xl'>Famous People</p>
+      </div>
       <div className='flex flex-col w-[75%] gap-3 mt-10'>
-        <p className='text-white'>Enter your word</p>
+        <p className='text-white'>Enter your guess</p>
         <input
           type='text'
-          placeholder='Enter your word'
+          placeholder='Enter your guess'
           autoComplete='off'
           value={word}
           disabled={loading}

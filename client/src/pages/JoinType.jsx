@@ -22,25 +22,33 @@ const JoinType = () => {
         <h2 className='mt-6 text-lg'>Online Rooms</h2>
 
         <div className='mt-2 w-[90%] max-w-full overflow-y-auto space-y-4 flex-1'>
-          <RoomCard
-            avatar={avatars[8]}
-            name={'Zuhaib.pro'}
-            category={'Anime'}
-            noPlayers={1}
-            code={8890}
-          />
-          <RoomCard
-            avatar={avatars[2]}
-            name={'faysal'}
-            category={'players'}
-            noPlayers={1}
-          />
-          <RoomCard
-            avatar={avatars[2]}
-            name={'faysal'}
-            category={'players'}
-            noPlayers={1}
-          />
+          {false ? (
+            <div className='text-center mt-6'>
+              <p className='text-gray-300'>No public rooms available!</p>
+            </div>
+          ) : (
+            <>
+              <RoomCard
+                avatar={avatars[8]}
+                name={'Zuhaib.pro'}
+                category={'Anime'}
+                noPlayers={1}
+                code={8890}
+              />
+              <RoomCard
+                avatar={avatars[2]}
+                name={'faysal'}
+                category={'players'}
+                noPlayers={1}
+              />
+              <RoomCard
+                avatar={avatars[2]}
+                name={'faysal'}
+                category={'players'}
+                noPlayers={1}
+              />
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -65,6 +65,22 @@ const Character = () => {
           onChange={(e) => setNickname(e.target.value)}
           className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
         />
+        <input
+          type='text'
+          placeholder='Category (Animals, famous people, etc.)'
+          autoComplete='false'
+          onChange={(e) => setNickname(e.target.value)}
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
+        />
+        <div className='flex items-center gap-5 text-white'>
+          <input
+            type='checkbox'
+            placeholder='Nickname'
+            onChange={(e) => setNickname(e.target.value)}
+            className='w-7 h-7 accent-primary rounded-md text-white'
+          />
+          Public
+        </div>
         <ErrorMessage message={error} />
         <button
           className='primary-btn'

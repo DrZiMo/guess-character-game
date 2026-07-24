@@ -32,6 +32,7 @@ const Game = () => {
 
     return () => {
       socket.off('playerSurrend', handleShowResult)
+      socket.off('revealResult', handleReveal)
     }
   }, [roomCode, navigate])
 
@@ -61,7 +62,7 @@ const Game = () => {
   const currentPlayer = players.find((p) => p.id === socket.id)
   const otherPlayer = players.find((p) => p.id !== socket.id)
   return (
-    <>
+    <div className=' text-white h-full flex-1 flex'>
       <ConfirmModal
         open={showModal}
         title='Reveal the Word?'
@@ -75,7 +76,7 @@ const Game = () => {
           Waiting for players...
         </div>
       ) : (
-        <div className='flex flex-col h-full items-center p-5 text-center text-white'>
+        <div className='flex flex-1 flex-col justify-between gap-5'>
           <div className='space-y-2 flex flex-col items-center'>
             <img
               src={otherPlayer.avatar}
@@ -92,7 +93,12 @@ const Game = () => {
                   restart
                 </button>
               </div>
-            ) : null}
+            ) : (
+              <div className='w-fit'>
+                {/* category */}
+                <p>famouse ppl</p>
+              </div>
+            )}
           </div>
           <div className='space-y-2 flex flex-col items-center'>
             <div
@@ -110,7 +116,7 @@ const Game = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   )
 }
 

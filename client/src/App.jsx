@@ -1,6 +1,5 @@
 import { Outlet, useNavigate } from 'react-router'
 import menuImage from '/menu-img.jpg'
-import backgroundImage from '/background_patter.avif'
 import { Toaster } from 'react-hot-toast'
 import { Analytics } from '@vercel/analytics/react'
 import { useEffect } from 'react'
@@ -16,31 +15,28 @@ const App = () => {
   }, [isUnderConstruction, navigate])
 
   return (
-    <div className='w-screen h-screen overflow-y-hidden relative'>
-      <div className='w-full h-screen absolute'>
-        <img
-          src={backgroundImage}
-          className='w-full h-full object-cover grayscale-100 opacity-30'
-        />
-      </div>
-      <div className='w-full sm:w-[600px] left-0 sm:left-1/2 sm:-translate-x-1/2 h-full absolute'>
-        <div className='relative w-full h-full'>
-          <div className='absolute w-full h-full flex flex-col py-5'>
-            <Outlet />
-            <Toaster />
-            <Analytics />
-            <div className='text-center text-white'>
-              By{' '}
-              <a
-                target='_blank'
-                href='https://linktr.ee/zuhaibpro'
-                className='text-blue-200 hover:text-blue-600'
-              >
-                zuhaib.pro
-              </a>
-            </div>
-          </div>
-          <img src={menuImage} className='w-full h-full object-cover z-[-1]' />
+    <div className='relative min-h-screen w-full overflow-hidden'>
+      <img
+        src={menuImage}
+        alt=''
+        className='absolute inset-0 h-full w-full object-cover'
+      />
+
+      <div className='relative z-10 mx-auto flex min-h-screen w-full max-w-[600px] flex-col py-5'>
+        <div className='flex-1 flex flex-col justify-center items-center'>
+          <Outlet />
+        </div>
+        <Toaster />
+        <Analytics />
+        <div className='mt-4 text-center text-white'>
+          By{' '}
+          <a
+            target='_blank'
+            href='https://linktr.ee/zuhaibpro'
+            className='text-blue-200 hover:text-blue-600'
+          >
+            zuhaib.pro
+          </a>
         </div>
       </div>
     </div>

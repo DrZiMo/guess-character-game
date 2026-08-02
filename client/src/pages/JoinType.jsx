@@ -1,10 +1,48 @@
 import { useNavigate } from 'react-router'
-import { avatars } from '../constants'
+import { avatars, backendURL, socket } from '../constants'
 import headerText from '/Join.png'
 import RoomCard from '../components/RoomCard'
+import { useState, useEffect } from 'react'
 
 const JoinType = () => {
   const navigate = useNavigate()
+  const [rooms, setRooms] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Request current public rooms list via socket
+    socket.emit('getPublicRooms')
+
+    // Listen for real-time room updates
+    const handleRoomsList = (roomsData) => {
+      if (Array.isArray(roomsData)) {
+        setRooms(roomsData)
+      }
+      setLoading(false)
+    }
+
+    socket.on('publicRoomsList', handleRoomsList)
+
+    // HTTP Fallback
+    fetch(`${backendURL}/api/rooms?isPublic=true`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          setRooms(data.data)
+        }
+      })
+      .catch((err) => console.error('Error fetching online rooms via REST:', err))
+      .finally(() => setLoading(false))
+
+    return () => {
+      socket.off('publicRoomsList', handleRoomsList)
+    }
+  }, [])
+
+  const handleRefresh = () => {
+    setLoading(true)
+    socket.emit('getPublicRooms')
+  }
 
   return (
     <div className='w-full h-full flex flex-col justify-center items-center my-22'>
@@ -19,35 +57,40 @@ const JoinType = () => {
           join with code
         </button>
 
-        <h2 className='mt-6 text-lg'>Online Rooms</h2>
+        <h2 className='mt-6 text-lg font-semibold flex items-center gap-2'>
+          <span className='flex items-center gap-2'>
+            <span className='w-2.5 h-2.5 rounded-full bg-green-400 animate-ping' />
+            Real-Time Online Rooms
+          </span>
+          <button
+            onClick={handleRefresh}
+            className='text-xs text-blue-300 hover:text-blue-100 underline ml-2 cursor-pointer'
+          >
+            Refresh
+          </button>
+        </h2>
 
-        <div className='mt-2 w-[90%] max-w-full overflow-y-auto space-y-4 flex-1'>
-          {false ? (
-            <div className='text-center mt-6'>
-              <p className='text-gray-300'>No public rooms available!</p>
+        <div className='mt-2 w-[90%] max-w-full overflow-y-auto space-y-4 flex-1 max-h-[320px] pr-1 scrollbar-thin scrollbar-thumb-white/20'>
+          {loading && rooms.length === 0 ? (
+            <div className='text-center mt-6 text-gray-400 animate-pulse'>
+              Searching for live rooms...
+            </div>
+          ) : rooms.length === 0 ? (
+            <div className='text-center mt-6 p-4 border border-dashed border-gray-500/50 rounded-lg'>
+              <p className='text-gray-300 font-medium'>No public rooms available right now!</p>
+              <p className='text-gray-400 text-xs mt-1'>Create one or join with a private code.</p>
             </div>
           ) : (
-            <>
+            rooms.map((room) => (
               <RoomCard
-                avatar={avatars[8]}
-                name={'Zuhaib.pro'}
-                category={'Anime'}
-                noPlayers={1}
-                code={8890}
+                key={room._id || room.code}
+                avatar={room.playerOneId?.pfp || avatars[0]}
+                name={room.playerOneId?.name || 'Host'}
+                category={room.category}
+                noPlayers={room.numberOfPlayer || 1}
+                code={room.code}
               />
-              <RoomCard
-                avatar={avatars[2]}
-                name={'faysal'}
-                category={'players'}
-                noPlayers={1}
-              />
-              <RoomCard
-                avatar={avatars[2]}
-                name={'faysal'}
-                category={'players'}
-                noPlayers={1}
-              />
-            </>
+            ))
           )}
         </div>
       </div>

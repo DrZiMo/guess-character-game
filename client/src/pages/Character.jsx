@@ -8,17 +8,23 @@ import AvatarPicker from '../components/AvatarPicker'
 
 const Character = () => {
   const navigate = useNavigate()
-  const [error, setError] = useState()
+  const [error, setError] = useState('')
   const [nickName, setNickname] = useState('')
   const [category, setCategory] = useState('')
-  const [isPublic, setIsPublic] = useState('')
+  const [isPublic, setIsPublic] = useState(true)
   const [avatar, setAvatar] = useState(avatars[7])
   const [show, setShow] = useState(false)
-  const { setName, setCode, setIsCreator, setImg } = useGameStore()
+  const [isCreating, setIsCreating] = useState(false)
+  const { setName, setCode, setRoomId, setIsCreator, setImg } = useGameStore()
 
   useEffect(() => {
-    const handleRoomCreated = (code) => {
+    const handleRoomCreated = (roomData) => {
+      setIsCreating(false)
+      const code = typeof roomData === 'object' ? roomData.code : roomData
+      const id = typeof roomData === 'object' ? roomData._id : null
+
       setCode(code)
+      if (id) setRoomId(id)
       setName(nickName)
       setIsCreator(true)
       setImg(avatar)
@@ -26,16 +32,26 @@ const Character = () => {
       navigate('/room?u=creator', { replace: true })
     }
 
+    const handleRoomCreationFailed = () => {
+      setIsCreating(false)
+      setError('Failed to create room. Please try again.')
+    }
+
     socket.on('roomCreated', handleRoomCreated)
+    socket.on('roomCreationFailed', handleRoomCreationFailed)
 
     return () => {
       socket.off('roomCreated', handleRoomCreated)
+      socket.off('roomCreationFailed', handleRoomCreationFailed)
     }
-  }, [nickName, setIsCreator, setName, setCode, navigate, setImg, avatar])
+  }, [nickName, setIsCreator, setName, setCode, navigate, setImg, avatar, setRoomId])
 
   const handleCreate = () => {
+    setError('')
     if (!nickName.trim()) return setError('Enter your nickname')
     if (!category.trim()) return setError('Enter the category')
+
+    setIsCreating(true)
 
     socket.emit('createRoom', {
       name: nickName.trim(),
@@ -55,7 +71,7 @@ const Character = () => {
           <div>
             <img
               src={avatar || avatars[7]}
-              className='w-30 h-30 mx-auto rounded-full mb-10'
+              className='w-30 h-30 mx-auto rounded-full mb-10 border-4 border-white/20 cursor-pointer hover:scale-105 transition-transform'
               onClick={() => setShow(!show)}
             />
           </div>
@@ -69,33 +85,47 @@ const Character = () => {
         <input
           type='text'
           placeholder='Nickname'
-          autoComplete='false'
-          onChange={(e) => setNickname(e.target.value)}
-          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
+          autoComplete='off'
+          value={nickName}
+          disabled={isCreating}
+          onChange={(e) => {
+            setNickname(e.target.value)
+            setError('')
+          }}
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50'
         />
         <input
           type='text'
           placeholder='Category (Animals, famous people, etc.)'
-          autoComplete='false'
-          onChange={(e) => setCategory(e.target.value)}
-          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
+          autoComplete='off'
+          value={category}
+          disabled={isCreating}
+          onChange={(e) => {
+            setCategory(e.target.value)
+            setError('')
+          }}
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50'
         />
-        <div className='flex items-center gap-5 text-white'>
+        <div className='flex items-center gap-3 text-white cursor-pointer select-none py-1'>
           <input
             type='checkbox'
-            placeholder='Nickname'
+            id='publicCheck'
+            checked={isPublic}
+            disabled={isCreating}
             onChange={(e) => setIsPublic(e.target.checked)}
-            className='w-7 h-7 accent-primary rounded-md text-white'
+            className='w-6 h-6 accent-primary rounded-md text-white cursor-pointer'
           />
-          Public
+          <label htmlFor='publicCheck' className='cursor-pointer text-sm font-medium'>
+            Public Room (Visible online)
+          </label>
         </div>
         <ErrorMessage message={error} />
         <button
-          className='primary-btn'
+          className='primary-btn disabled:opacity-50'
           onClick={handleCreate}
-          disabled={!nickName.trim()}
+          disabled={!nickName.trim() || !category.trim() || isCreating}
         >
-          create
+          {isCreating ? 'creating...' : 'create'}
         </button>
       </div>
     </div>

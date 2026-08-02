@@ -5,6 +5,7 @@ import { socket } from '../constants'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import ErrorMessage from '../components/ErrorMessage'
+import Chat from '../components/Chat'
 
 const Word = () => {
   const navigate = useNavigate()
@@ -64,16 +65,16 @@ const Word = () => {
   }
 
   return (
-    <div className='w-full h-full flex flex-col justify-center items-center'>
+    <div className='w-full h-full flex flex-col justify-center items-center relative'>
       <div className='text-center space-y-5'>
         <img src={headerText} alt='Header Text' />
-        <p className='text-white text-2xl'>{roomCode}</p>
+        <p className='text-white text-2xl font-bold tracking-widest'>{roomCode}</p>
       </div>
       <div className='mt-5'>
-        <p className='text-white text-xl'>Famous People</p>
+        <p className='text-white text-xl font-semibold'>Famous People</p>
       </div>
       <div className='flex flex-col w-[75%] gap-3 mt-10'>
-        <p className='text-white'>Enter your guess</p>
+        <p className='text-white font-medium'>Enter your guess</p>
         <input
           type='text'
           placeholder='Enter your guess'
@@ -99,9 +100,12 @@ const Word = () => {
           {loading ? 'submitted' : 'submit'}
         </button>
         {loading ? (
-          <p className='text-white'>Waiting for the other player...</p>
+          <p className='text-white text-center animate-pulse'>Waiting for the other player...</p>
         ) : null}
       </div>
+
+      {/* Real-time Chat Drawer */}
+      <Chat />
     </div>
   )
 }

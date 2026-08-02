@@ -14,33 +14,47 @@ const Join = () => {
   const [nickName, setNickname] = useState('')
   const [avatar, setAvatar] = useState(avatars[8])
   const [show, setShow] = useState(false)
-  const { setCode, setPlayers } = useGameStore()
+  const [isJoining, setIsJoining] = useState(false)
+  const { setCode, setRoomId, setPlayers, setName, setImg } = useGameStore()
 
   useEffect(() => {
     const handlePlayerJoined = (players) => {
+      setIsJoining(false)
       setPlayers(players)
       setCode(code)
+      setName(nickName)
+      setImg(avatar)
       navigate('/room?u=player', { replace: true })
     }
 
+    const handleRoomJoined = (roomData) => {
+      if (roomData?.roomId) {
+        setRoomId(roomData.roomId)
+      }
+    }
+
     const handleRoomFull = () => {
-      setCodeError('Room is full')
+      setIsJoining(false)
+      setCodeError('This room is already full (2/2 players)!')
     }
 
     const handleRoomNotFound = () => {
-      setCodeError('Room not found')
+      setIsJoining(false)
+      setCodeError('Room not found or code is invalid!')
     }
 
     socket.on('playerJoined', handlePlayerJoined)
+    socket.on('roomJoined', handleRoomJoined)
     socket.on('roomFull', handleRoomFull)
     socket.on('roomNotFound', handleRoomNotFound)
 
     return () => {
       socket.off('playerJoined', handlePlayerJoined)
+      socket.off('roomJoined', handleRoomJoined)
       socket.off('roomFull', handleRoomFull)
       socket.off('roomNotFound', handleRoomNotFound)
     }
-  }, [code, navigate, setCode, setPlayers])
+  }, [code, nickName, avatar, navigate, setCode, setRoomId, setPlayers, setName, setImg])
 
   const handleJoin = () => {
     setNameError('')
@@ -48,6 +62,8 @@ const Join = () => {
 
     if (!nickName.trim()) return setNameError('Enter your nickname')
     if (!code.trim()) return setCodeError('Enter the code')
+
+    setIsJoining(true)
 
     socket.emit('joinRoom', {
       code: code.trim(),
@@ -66,7 +82,7 @@ const Join = () => {
           <div>
             <img
               src={avatar || avatars[8]}
-              className='w-30 h-30 mx-auto rounded-full mb-10'
+              className='w-30 h-30 mx-auto rounded-full mb-10 border-4 border-white/20 cursor-pointer hover:scale-105 transition-transform'
               onClick={() => setShow(!show)}
             />
           </div>
@@ -80,27 +96,35 @@ const Join = () => {
         <input
           type='text'
           placeholder='Nickname'
-          autoComplete='false'
+          autoComplete='off'
           value={nickName}
-          onChange={(e) => setNickname(e.target.value)}
-          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
+          disabled={isJoining}
+          onChange={(e) => {
+            setNickname(e.target.value)
+            setNameError('')
+          }}
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50'
         />
         <ErrorMessage message={nameError} />
         <input
           type='text'
           placeholder='Code'
-          autoComplete='false'
+          autoComplete='off'
           value={code}
-          onChange={(e) => setRoomCode(e.target.value)}
-          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white'
+          disabled={isJoining}
+          onChange={(e) => {
+            setRoomCode(e.target.value)
+            setCodeError('')
+          }}
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50 font-mono text-lg tracking-wider'
         />
         <ErrorMessage message={codeError} />
         <button
-          className='primary-btn'
+          className='primary-btn disabled:opacity-50'
           onClick={handleJoin}
-          disabled={!nickName.trim() || !code.trim()}
+          disabled={!nickName.trim() || !code.trim() || isJoining}
         >
-          join
+          {isJoining ? 'joining...' : 'join'}
         </button>
       </div>
     </div>

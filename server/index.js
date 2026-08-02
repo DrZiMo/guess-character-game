@@ -1,11 +1,18 @@
 import express from 'express'
 import { Server } from 'socket.io'
 import http from 'http'
-import { generateCode } from './lib/index.js'
-import { Player } from './models/player.models.js'
-import { createRoom } from './controller/room.controller.js'
-import { connectDB } from './utils/db.js'
 import dotenv from 'dotenv'
+
+import { connectDB } from './utils/db.js'
+import { Player } from './models/player.models.js'
+import { Room } from './models/rooms.models.js'
+import { Message } from './models/message.models.js'
+import { generateCode } from './lib/index.js'
+
+import { deleteRoomMessages, broadcastPublicRooms } from './controller/room.controller.js'
+import roomRoutes from './routes/room.routes.js'
+import userRoutes from './routes/user.routes.js'
+import messageRoutes from './routes/message.routes.js'
 
 dotenv.config()
 
@@ -13,221 +20,451 @@ const app = express()
 const server = http.createServer(app)
 
 const io = new Server(server, {
-  cors: { origin: ['http://localhost:5175', 'https://guess-bice.vercel.app'] },
+  cors: { origin: ['http://localhost:5175', 'https://guess-bice.vercel.app', 'http://localhost:5173'] },
 })
 
 app.use(express.json())
+
+// Mount API routes
+app.use('/api/rooms', roomRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api/messages', messageRoutes)
 
 connectDB()
 
 const rooms = {}
 
 io.on('connection', (socket) => {
-  // register
+  // Register player
   socket.on('register', async ({ browserId }) => {
-    const player = await Player.findOneAndUpdate(
-      { browserId },
-      { isOnline: true },
-      { new: true },
-    )
-
-    socket.playerId = player._id
-
-    io.emit('playerStatusChanged', {
-      playerId: player._id,
-      isOnline: true,
-    })
+    try {
+      if (!browserId) return
+      let player = await Player.findOne({ browserId })
+      if (player) {
+        player.isOnline = true
+        await player.save()
+        socket.playerId = player._id
+        io.emit('playerStatusChanged', {
+          playerId: player._id,
+          isOnline: true,
+        })
+      }
+    } catch (error) {
+      console.error('Error registering socket player:', error)
+    }
   })
 
-  // create room
+  // Get available public rooms (real-time request)
+  socket.on('getPublicRooms', async () => {
+    try {
+      const publicRooms = await Room.find({
+        isPublic: true,
+        numberOfPlayer: 1,
+        isStarted: false,
+      })
+        .populate('playerOneId', 'name pfp')
+        .sort({ createdAt: -1 })
+
+      socket.emit('publicRoomsList', publicRooms)
+    } catch (error) {
+      console.error('Error sending public rooms:', error)
+    }
+  })
+
+  // Create Room
   socket.on('createRoom', async ({ name, avatar, category, isPublic }) => {
-    createRoom(io, socket, {name, avatar, category, isPublic})
+    try {
+      let player
+      if (socket.playerId) {
+        player = await Player.findById(socket.playerId)
+      }
+
+      if (!player) {
+        player = await Player.create({
+          name: name || 'Player 1',
+          pfp: avatar || 'default_avatar.png',
+          browserId: socket.id,
+        })
+        socket.playerId = player._id
+      } else {
+        if (name) player.name = name
+        if (avatar) player.pfp = avatar
+        await player.save()
+      }
+
+      let dbRoom
+      while (!dbRoom) {
+        try {
+          let code
+          do {
+            code = generateCode()
+          } while (await Room.exists({ code }))
+
+          dbRoom = await Room.create({
+            playerOneId: player._id,
+            code,
+            category: category || 'General',
+            isPublic: isPublic ?? true,
+            numberOfPlayer: 1,
+          })
+        } catch (err) {
+          if (err.code !== 11000) throw err
+        }
+      }
+
+      const creatorObj = {
+        id: socket.id,
+        socketId: socket.id,
+        playerId: player._id.toString(),
+        name: player.name,
+        avatar: player.pfp,
+        pfp: player.pfp,
+        word: null,
+      }
+
+      rooms[dbRoom.code] = {
+        roomId: dbRoom._id,
+        code: dbRoom.code,
+        category: dbRoom.category,
+        isPublic: dbRoom.isPublic,
+        creatorSocketId: socket.id,
+        started: false,
+        players: [creatorObj],
+      }
+
+      socket.join(dbRoom._id.toString())
+      socket.join(dbRoom.code.toString())
+
+      socket.emit('roomCreated', dbRoom)
+      broadcastPublicRooms(io)
+    } catch (err) {
+      console.error('Error in createRoom socket event:', err)
+      socket.emit('roomCreationFailed')
+    }
   })
 
-  // join room
-  socket.on('joinRoom', async ({ code, playerId }) => {
-    const dbRoom = await Room.findOne({ code })
+  // Join Room
+  socket.on('joinRoom', async ({ code, name, avatar, playerId }) => {
+    try {
+      if (!code) {
+        return socket.emit('roomNotFound')
+      }
 
-    if (!dbRoom) {
-      return socket.emit('roomNotFound')
+      const numericCode = Number(code.toString().trim())
+      if (isNaN(numericCode)) {
+        return socket.emit('roomNotFound')
+      }
+
+      const dbRoom = await Room.findOne({ code: numericCode }).populate('playerOneId')
+
+      if (!dbRoom) {
+        return socket.emit('roomNotFound')
+      }
+
+      if (dbRoom.numberOfPlayer >= 2 && dbRoom.playerTwoId) {
+        return socket.emit('roomFull')
+      }
+
+      let playerTwo
+      if (playerId) {
+        playerTwo = await Player.findById(playerId)
+      }
+      if (!playerTwo) {
+        playerTwo = await Player.create({
+          name: name || 'Player 2',
+          pfp: avatar || 'default_avatar.png',
+          browserId: socket.id,
+        })
+      } else {
+        if (name) playerTwo.name = name
+        if (avatar) playerTwo.pfp = avatar
+        await playerTwo.save()
+      }
+
+      socket.playerId = playerTwo._id
+
+      dbRoom.playerTwoId = playerTwo._id
+      dbRoom.numberOfPlayer = 2
+      await dbRoom.save()
+
+      if (!rooms[numericCode]) {
+        rooms[numericCode] = {
+          roomId: dbRoom._id,
+          code: dbRoom.code,
+          category: dbRoom.category,
+          isPublic: dbRoom.isPublic,
+          creatorSocketId: null,
+          started: false,
+          players: [],
+        }
+      }
+
+      // Add player 1 if not yet in memory
+      if (rooms[numericCode].players.length === 0 && dbRoom.playerOneId) {
+        rooms[numericCode].players.push({
+          id: dbRoom.playerOneId.browserId || 'creator',
+          socketId: rooms[numericCode].creatorSocketId,
+          playerId: dbRoom.playerOneId._id.toString(),
+          name: dbRoom.playerOneId.name,
+          avatar: dbRoom.playerOneId.pfp,
+          pfp: dbRoom.playerOneId.pfp,
+          word: null,
+        })
+      }
+
+      const playerTwoObj = {
+        id: socket.id,
+        socketId: socket.id,
+        playerId: playerTwo._id.toString(),
+        name: playerTwo.name,
+        avatar: playerTwo.pfp,
+        pfp: playerTwo.pfp,
+        word: null,
+      }
+
+      const existingIndex = rooms[numericCode].players.findIndex(
+        (p) => p.socketId === socket.id || (p.playerId && p.playerId === playerTwo._id.toString())
+      )
+
+      if (existingIndex !== -1) {
+        rooms[numericCode].players[existingIndex] = playerTwoObj
+      } else {
+        rooms[numericCode].players.push(playerTwoObj)
+      }
+
+      socket.join(dbRoom._id.toString())
+      socket.join(numericCode.toString())
+
+      socket.emit('roomJoined', {
+        code: dbRoom.code,
+        roomId: dbRoom._id,
+        category: dbRoom.category,
+      })
+
+      io.to(numericCode.toString()).emit('playerJoined', rooms[numericCode].players)
+      broadcastPublicRooms(io)
+    } catch (error) {
+      console.error('Error in joinRoom socket event:', error)
+      socket.emit('roomNotFound')
     }
-
-    if (dbRoom.playerTwoId) {
-      return socket.emit('roomFull')
-    }
-
-    dbRoom.playerTwoId = playerId
-    dbRoom.numberOfPlayer = 2
-
-    await dbRoom.save()
-
-    rooms[code].players.push({
-      playerId,
-      socketId: socket.id,
-      word: null,
-    })
-
-    socket.join(room._id.toString())
-
-    io.to(code.toString()).emit('playerJoined', rooms[code].players)
   })
 
-  // start the game 👉 only the creator of the room
+  // Start game
   socket.on('gameStart', (code) => {
-    const room = rooms[code]
-
-    room.started = true
-    io.to(code).emit('gameStarted')
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
+    if (room) {
+      room.started = true
+      io.to(numericCode.toString()).emit('gameStarted')
+      broadcastPublicRooms(io)
+    }
   })
 
   socket.on('startClicked', (code) => {
-    const room = rooms[code]
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (
       room &&
-      room.creatorSocketId === socket.id &&
-      room.players.length === 2
+      (room.creatorSocketId === socket.id || room.players.length === 2)
     ) {
-      io.to(code).emit('enterWords', room.players)
+      io.to(numericCode.toString()).emit('enterWords', room.players)
     }
   })
 
-  // submit the words
+  // Submit word
   socket.on('submitWord', ({ code, word }) => {
-    const room = rooms[code]
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (!room) return
 
     const player = room.players.find((p) => p.socketId === socket.id)
     if (player) player.word = word.trim().toLowerCase()
 
-    // check if both words are set
-    if (room.players.every((p) => p.word)) {
+    if (room.players.length === 2 && room.players.every((p) => p.word)) {
       const [p1, p2] = room.players
 
       if (p1.word === p2.word) {
         room.players.forEach((p) => (p.word = null))
-        io.to(code).emit('sameWordError')
+        io.to(numericCode.toString()).emit('sameWordError')
         return
       }
 
-      io.to(code).emit('wordsSet', room.players)
+      io.to(numericCode.toString()).emit('wordsSet', room.players)
     }
   })
 
-  // restart game
+  // Restart game
   socket.on('restartGame', (code) => {
-    const room = rooms[code]
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (!room) return
 
     room.players.forEach((player) => (player.word = null))
     room.started = true
-    io.to(code).emit('gameRestarted')
+    io.to(numericCode.toString()).emit('gameRestarted')
   })
 
-  // end game
-  socket.on('endGame', (code) => {
-    const room = rooms[code]
-    if (!room) return
+  // End game -> purges all messages for the room from DB
+  socket.on('endGame', async (code) => {
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
+    if (room) {
+      room.players.forEach((player) => (player.word = null))
+      room.started = false
+      io.to(numericCode.toString()).emit('gameEnded')
+    }
 
-    room.players.forEach((player) => (player.word = null))
-    room.started = false
-    io.to(code).emit('gameEnded')
+    try {
+      const dbRoom = await Room.findOneAndDelete({ code: numericCode })
+      if (dbRoom) {
+        await deleteRoomMessages(dbRoom._id)
+      }
+      delete rooms[numericCode]
+      broadcastPublicRooms(io)
+    } catch (err) {
+      console.error('Error cleaning up messages on endGame:', err)
+    }
   })
 
-  // leave the room
-  socket.on('leaveRoom', (code) => {
-    const room = rooms[code]
+  // Leave room
+  socket.on('leaveRoom', async (code) => {
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (!room) return
 
     const index = room.players.findIndex((p) => p.socketId === socket.id)
     if (index !== -1) {
       const name = room.players[index].name
       room.players.splice(index, 1)
-      socket.leave(code)
-      io.to(code).emit('playerLeft', name)
+      socket.leave(numericCode.toString())
+      io.to(numericCode.toString()).emit('playerLeft', name)
     }
 
-    // close the room if the creator leaves
-    if (room.creatorSocketId === socket.id) {
-      io.to(code).emit('roomClosed')
-      delete rooms[code]
+    if (room.creatorSocketId === socket.id || room.players.length === 0) {
+      io.to(numericCode.toString()).emit('roomClosed')
+      try {
+        const dbRoom = await Room.findOneAndDelete({ code: numericCode })
+        if (dbRoom) {
+          await deleteRoomMessages(dbRoom._id)
+        }
+      } catch (err) {
+        console.error('Error cleaning up room messages on room leave:', err)
+      }
+      delete rooms[numericCode]
+      broadcastPublicRooms(io)
     }
   })
 
-  // player want to see result
+  // See result
   socket.on('seeResult', (code) => {
-    const room = rooms[code]
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (!room) return
 
     room.started = false
-
-    io.to(code).emit('playerSurrend', socket.id)
+    io.to(numericCode.toString()).emit('playerSurrend', socket.id)
   })
 
-  // reveal words
+  // Reveal result
   socket.on('confirmReveal', (code) => {
-    const room = rooms[code]
+    const numericCode = Number(code)
+    const room = rooms[numericCode]
     if (!room) return
 
-    io.to(code).emit('revealResult')
+    io.to(numericCode.toString()).emit('revealResult')
   })
 
-  // send message
+  // Send message
   socket.on('sendMessage', async ({ roomId, text }) => {
     try {
+      if (!roomId || !text) return
+
+      let activeRoomId = roomId
+      if (!isNaN(roomId)) {
+        const foundRoom = await Room.findOne({ code: Number(roomId) })
+        if (foundRoom) activeRoomId = foundRoom._id
+      }
+
       const message = await Message.create({
-        roomId,
+        roomId: activeRoomId,
         senderId: socket.playerId,
         text,
       })
 
       const populatedMessage = await Message.findById(message._id).populate(
         'senderId',
+        'name pfp',
       )
 
-      io.to(roomId.toString()).emit('newMessage', populatedMessage)
+      io.to(activeRoomId.toString()).emit('newMessage', populatedMessage)
     } catch (error) {
-      console.log(error)
+      console.error('Error sending message:', error)
     }
   })
 
-  // load message
+  // Load messages
   socket.on('loadMessages', async ({ roomId }) => {
-    const messages = await Message.find({
-      roomId,
-    })
-      .populate('senderId')
-      .sort({ createdAt: 1 })
+    try {
+      if (!roomId) return
 
-    socket.emit('messagesLoaded', messages)
+      let activeRoomId = roomId
+      if (!isNaN(roomId)) {
+        const foundRoom = await Room.findOne({ code: Number(roomId) })
+        if (foundRoom) activeRoomId = foundRoom._id
+      }
+
+      const messages = await Message.find({ roomId: activeRoomId })
+        .populate('senderId', 'name pfp')
+        .sort({ createdAt: 1 })
+
+      socket.emit('messagesLoaded', messages)
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    }
   })
 
-  // disconnect
+  // Disconnect
   socket.on('disconnect', async () => {
-    if (!socket.playerId) return
-
-    await Player.findByIdAndUpdate(socket.playerId, {
-      isOnline: false,
-      lastSeen: new Date(),
-    })
-    io.emit('playerStatusChanged', {
-      playerId: socket.playerId,
-      isOnline: false,
-    })
+    if (socket.playerId) {
+      try {
+        await Player.findByIdAndUpdate(socket.playerId, {
+          isOnline: false,
+          lastSeen: new Date(),
+        })
+        io.emit('playerStatusChanged', {
+          playerId: socket.playerId,
+          isOnline: false,
+        })
+      } catch (err) {
+        console.error('Error updating player status on disconnect:', err)
+      }
+    }
 
     for (const [code, room] of Object.entries(rooms)) {
       if (room.creatorSocketId === socket.id) {
         io.to(code).emit('roomClosed')
+        try {
+          const dbRoom = await Room.findOneAndDelete({ code: Number(code) })
+          if (dbRoom) {
+            await deleteRoomMessages(dbRoom._id)
+          }
+        } catch (err) {
+          console.error('Error cleaning messages on disconnect:', err)
+        }
         delete rooms[code]
+        broadcastPublicRooms(io)
       } else {
         const index = room.players.findIndex((p) => p.socketId === socket.id)
         if (index !== -1) {
           const name = room.players[index].name
           room.players.splice(index, 1)
           io.to(code).emit('playerLeft', name)
+          broadcastPublicRooms(io)
         }
       }
     }
   })
 })
 
-server.listen(3000, () => console.log('listening', 3000))
+const PORT = process.env.PORT || 3000
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`))

@@ -3,6 +3,11 @@ import { Server } from 'socket.io'
 import http from 'http'
 import { generateCode } from './lib/index.js'
 import { Player } from './models/player.models.js'
+import { createRoom } from './controller/room.controller.js'
+import { connectDB } from './utils/db.js'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const app = express()
 const server = http.createServer(app)
@@ -10,6 +15,10 @@ const server = http.createServer(app)
 const io = new Server(server, {
   cors: { origin: ['http://localhost:5175', 'https://guess-bice.vercel.app'] },
 })
+
+app.use(express.json())
+
+connectDB()
 
 const rooms = {}
 
@@ -31,43 +40,8 @@ io.on('connection', (socket) => {
   })
 
   // create room
-  socket.on('createRoom', async ({ category }) => {
-    try {
-      let code
-
-      do {
-        code = generateCode()
-      } while (await Room.findOne({ code }))
-
-      const room = await Room.create({
-        playerOneId: socket.playerId,
-        code,
-        category,
-      })
-
-      rooms[code] = {
-        roomId: room._id,
-        creatorSocketId: socket.id,
-        players: [
-          {
-            playerId: socket.playerId,
-            socketId: socket.id,
-            word: null,
-          },
-        ],
-        started: false,
-      }
-
-      socket.join(room._id.toString())
-
-      socket.emit('roomCreated', {
-        roomId: room._id,
-        code,
-      })
-    } catch (error) {
-      console.error(error)
-      socket.emit('roomCreationFailed')
-    }
+  socket.on('createRoom', async ({ name, avatar, category, isPublic }) => {
+    createRoom(io, socket, {name, avatar, category, isPublic})
   })
 
   // join room

@@ -48,7 +48,6 @@ export const closeAndDeleteRoom = async (code, io) => {
 
     if (room) {
       await deleteRoomMessages(room._id)
-      console.log(`Deleted room ${code} and its messages from database.`)
     }
 
     if (io) {

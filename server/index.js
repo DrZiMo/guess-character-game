@@ -343,9 +343,17 @@ io.on('connection', (socket) => {
   })
 
   // Send message
-  socket.on('sendMessage', async ({ roomId, text }) => {
+  socket.on('sendMessage', async ({ roomId, text, tempId }) => {
     try {
-      if (!roomId || typeof text !== 'string' || !text.trim()) return
+      if (!roomId || typeof text !== 'string' || !text.trim()) {
+        if (tempId) {
+          socket.emit('messageFailed', {
+            tempId,
+            reason: 'Message cannot be empty.',
+          })
+        }
+        return
+      }
 
       let activeRoomId = roomId
       if (!isNaN(roomId)) {
@@ -353,7 +361,15 @@ io.on('connection', (socket) => {
         if (foundRoom) activeRoomId = foundRoom._id
       }
 
-      if (!socket.rooms.has(activeRoomId.toString())) return
+      if (!socket.rooms.has(activeRoomId.toString())) {
+        if (tempId) {
+          socket.emit('messageFailed', {
+            tempId,
+            reason: 'Unable to send message for this room.',
+          })
+        }
+        return
+      }
 
       // Determine sender info from in-memory rooms
       let sender = {
@@ -385,9 +401,18 @@ io.on('connection', (socket) => {
         text: text.trim().slice(0, 1000),
       })
 
-      io.to(activeRoomId.toString()).emit('newMessage', message)
+      const payload = message.toObject ? message.toObject() : message
+      if (tempId) payload.tempId = tempId
+
+      io.to(activeRoomId.toString()).emit('newMessage', payload)
     } catch (error) {
       console.error('Error sending message:', error)
+      if (tempId) {
+        socket.emit('messageFailed', {
+          tempId,
+          reason: error.message || 'Failed to send message.',
+        })
+      }
     }
   })
 

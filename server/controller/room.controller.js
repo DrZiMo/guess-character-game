@@ -16,6 +16,7 @@ export const deleteRoomMessages = async (roomId) => {
 // Broadcast public available rooms to all connected clients via Socket.io
 export const broadcastPublicRooms = async (io) => {
   try {
+    if (!io) return
     const publicRooms = await Room.find({
       isPublic: true,
       numberOfPlayer: 1,
@@ -27,6 +28,32 @@ export const broadcastPublicRooms = async (io) => {
     io.emit('publicRoomsList', publicRooms)
   } catch (error) {
     console.error('Error broadcasting public rooms:', error)
+  }
+}
+
+// Helper to delete room from database & clean up its messages & update public list
+export const closeAndDeleteRoom = async (code, io) => {
+  try {
+    if (!code) return
+    const numericCode = Number(code)
+    let room
+    if (!isNaN(numericCode)) {
+      room = await Room.findOneAndDelete({ code: numericCode })
+    } else {
+      room = await Room.findByIdAndDelete(code)
+    }
+
+    if (room) {
+      await deleteRoomMessages(room._id)
+      console.log(`Deleted room ${code} and its messages from database.`)
+    }
+
+    if (io) {
+      await broadcastPublicRooms(io)
+    }
+    return room
+  } catch (error) {
+    console.error(`Error deleting room ${code} from database:`, error)
   }
 }
 
@@ -148,24 +175,15 @@ export const updateRoom = async (req, res) => {
 export const deleteRoom = async (req, res) => {
   try {
     const { identifier } = req.params
-    let room
-
-    if (!isNaN(identifier)) {
-      room = await Room.findOneAndDelete({ code: Number(identifier) })
-    } else {
-      room = await Room.findByIdAndDelete(identifier)
-    }
+    const room = await closeAndDeleteRoom(identifier, req.app.get('io'))
 
     if (!room) {
       return res.status(404).json({ error: 'Room not found' })
     }
 
-    // Delete associated messages when room is deleted
-    await deleteRoomMessages(room._id)
-
     return res.status(200).json({
       success: true,
-      message: 'Room and its messages deleted successfully',
+      message: 'Room and its messages deleted from database successfully',
       data: room,
     })
   } catch (error) {

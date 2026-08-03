@@ -81,7 +81,7 @@ const Room = () => {
 
   return (
     <div className='w-full h-full flex flex-col justify-center items-center relative'>
-      <div className='relative top-0'>
+      <div className='relative top-0 right-0 mb-5'>
         <button
           onClick={handleLeaveRoom}
           className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-semibold text-sm transition-all cursor-pointer'

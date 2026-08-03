@@ -9,9 +9,12 @@ const Chat = ({ isOpened }) => {
   const [text, setText] = useState('')
   const [isOpen, setIsOpen] = useState(isOpened || false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [isOpponentTyping, setIsOpponentTyping] = useState(false)
   const listRef = useRef(null)
   const isAtBottomRef = useRef(true)
   const messagesEndRef = useRef(null)
+  const typingTimeoutRef = useRef(null)
+  const isTypingRef = useRef(false)
 
   const activeRoomId = useMemo(() => roomId || roomCode, [roomId, roomCode])
 
@@ -116,6 +119,80 @@ const Chat = ({ isOpened }) => {
     }
   }, [messages])
 
+  const clearTypingTimeout = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = null
+    }
+  }
+
+  const stopTyping = () => {
+    if (!activeRoomId || !isTypingRef.current) return
+    socket.emit('stopTyping', { roomId: activeRoomId })
+    isTypingRef.current = false
+    clearTypingTimeout()
+  }
+
+  const handleInputChange = (e) => {
+    const nextText = e.target.value
+    setText(nextText)
+
+    if (!activeRoomId) return
+
+    if (!nextText.trim()) {
+      stopTyping()
+      return
+    }
+
+    if (!isTypingRef.current) {
+      socket.emit('typing', { roomId: activeRoomId })
+      isTypingRef.current = true
+    }
+
+    clearTypingTimeout()
+    typingTimeoutRef.current = window.setTimeout(() => {
+      if (isTypingRef.current) {
+        socket.emit('stopTyping', { roomId: activeRoomId })
+        isTypingRef.current = false
+      }
+      typingTimeoutRef.current = null
+    }, 1500)
+  }
+
+  useEffect(() => {
+    if (!activeRoomId) return
+
+    const handleOpponentTyping = ({ socketId, roomId }) => {
+      if (socketId === socket.id) return
+      if (roomId !== activeRoomId.toString()) return
+      setIsOpponentTyping(true)
+    }
+
+    const handleOpponentStopTyping = ({ socketId, roomId }) => {
+      if (socketId === socket.id) return
+      if (roomId !== activeRoomId.toString()) return
+      setIsOpponentTyping(false)
+    }
+
+    socket.on('typing', handleOpponentTyping)
+    socket.on('stopTyping', handleOpponentStopTyping)
+
+    return () => {
+      socket.off('typing', handleOpponentTyping)
+      socket.off('stopTyping', handleOpponentStopTyping)
+      setIsOpponentTyping(false)
+    }
+  }, [activeRoomId])
+
+  useEffect(() => {
+    return () => {
+      if (isTypingRef.current && activeRoomId) {
+        socket.emit('stopTyping', { roomId: activeRoomId })
+      }
+      clearTypingTimeout()
+    }
+  }, [activeRoomId])
+
   const handleScroll = () => {
     const node = listRef.current
     if (!node) return
@@ -150,6 +227,7 @@ const Chat = ({ isOpened }) => {
 
     setMessages((prevMessages) => [...prevMessages, optimisticMessage])
     setText('')
+    stopTyping()
 
     socket.emit('sendMessage', {
       roomId: activeRoomId,
@@ -279,6 +357,14 @@ const Chat = ({ isOpened }) => {
             <div ref={messagesEndRef} />
           </div>
 
+          {isOpponentTyping && (
+            <div className='px-4 pb-2'>
+              <div className='px-3 py-2 text-xs text-slate-300 shadow-sm'>
+                <span className='font-base tracking-wide'>Typing...</span>
+              </div>
+            </div>
+          )}
+
           <form
             onSubmit={handleSend}
             className='p-3 border-t border-slate-700/40 bg-slate-950/95 flex items-center w-full! gap-2'
@@ -286,7 +372,7 @@ const Chat = ({ isOpened }) => {
             <input
               type='text'
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleInputChange}
               placeholder='Type a message...'
               className='min-w-0 flex-1 bg-slate-900/90 text-slate-100 text-base md:text-sm px-4 py-3 rounded-2xl border border-slate-700/70 focus:outline-none focus:border-sky-400 placeholder-slate-500 transition'
             />

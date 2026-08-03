@@ -73,7 +73,7 @@ const Word = () => {
         </p>
       </div>
       <div className='mt-5'>
-        <p className='text-white text-xl font-semibold'>
+        <p className='text-yellow-300 text-xl font-semibold'>
           {category || 'Category'}
         </p>
       </div>

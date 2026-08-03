@@ -416,6 +416,36 @@ io.on('connection', (socket) => {
     }
   })
 
+  socket.on('typing', async ({ roomId }) => {
+    if (!roomId) return
+    let activeRoomId = roomId
+    if (!isNaN(roomId)) {
+      const foundRoom = await Room.findOne({ code: Number(roomId) })
+      if (foundRoom) activeRoomId = foundRoom._id
+    }
+
+    if (!socket.rooms.has(activeRoomId.toString())) return
+    socket.to(activeRoomId.toString()).emit('typing', {
+      socketId: socket.id,
+      roomId: activeRoomId.toString(),
+    })
+  })
+
+  socket.on('stopTyping', async ({ roomId }) => {
+    if (!roomId) return
+    let activeRoomId = roomId
+    if (!isNaN(roomId)) {
+      const foundRoom = await Room.findOne({ code: Number(roomId) })
+      if (foundRoom) activeRoomId = foundRoom._id
+    }
+
+    if (!socket.rooms.has(activeRoomId.toString())) return
+    socket.to(activeRoomId.toString()).emit('stopTyping', {
+      socketId: socket.id,
+      roomId: activeRoomId.toString(),
+    })
+  })
+
   // Load messages
   socket.on('loadMessages', async ({ roomId }) => {
     try {

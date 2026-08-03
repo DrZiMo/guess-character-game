@@ -54,10 +54,8 @@ const JoinType = () => {
           join with code
         </button>
 
-        <h2 className='mt-6 text-lg font-semibold flex items-center gap-2'>
-          <span className='flex items-center gap-2'>
-            Real-Time Online Rooms
-          </span>
+        <h2 className='mt-6 text-lg font-semibold text-center flex items-center gap-2'>
+          Online Rooms
         </h2>
 
         <div className='mt-2 w-[90%] max-w-full overflow-y-auto space-y-4 flex-1 max-h-80 pr-1 scrollbar-thin scrollbar-thumb-white/20'>
@@ -66,7 +64,7 @@ const JoinType = () => {
               Searching for live rooms...
             </div>
           ) : rooms.length === 0 ? (
-            <div className='text-center mt-6 p-4 border border-dashed border-gray-500/50 rounded-lg'>
+            <div className='text-center mt-6 p-4 border border-dashed border-gray-500/50 rounded-lg space-y-5'>
               <p className='text-gray-300 font-medium'>
                 No public rooms available right now!
               </p>

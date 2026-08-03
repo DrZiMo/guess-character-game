@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { socket, backendURL } from '../constants'
 import { useGameStore } from '../store/useGameStore'
+import clsx from 'clsx'
 
 const Chat = ({ isOpened }) => {
   const { roomCode, roomId, setRoomId, name, img } = useGameStore()
@@ -199,9 +200,14 @@ const Chat = ({ isOpened }) => {
   }
 
   return (
-    <div className='fixed top-4 right-4 z-50 flex flex-col items-end'>
+    <div
+      className={clsx(
+        'fixed top-4 z-50 flex flex-col items-end w-screen',
+        !isOpen ? 'right-4 animate-bounce' : 'right-0 md:right-4',
+      )}
+    >
       {isOpen && (
-        <div className='w-[90%] sm:w-96 h-[90vh] md:h-96 bg-slate-950/80 backdrop-blur-xl border border-slate-300/10 rounded-3xl shadow-[0_24px_80px_-40px_rgba(15,23,42,0.8)] flex flex-col mb-3 animate-in fade-in duration-200'>
+        <div className='w-[95%] mx-auto sm:w-96 h-[90vh] md:h-96 bg-slate-950/80 backdrop-blur-xl border border-slate-300/10 rounded-3xl shadow-[0_24px_80px_-40px_rgba(15,23,42,0.8)] flex flex-col mb-3 animate-in fade-in duration-200'>
           <div className='bg-slate-900/90 px-4 py-3 border-b border-slate-200/10 flex items-center justify-between'>
             <div className='flex items-center gap-2'>
               <div>
@@ -282,7 +288,7 @@ const Chat = ({ isOpened }) => {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder='Type a message...'
-              className='min-w-0 flex-1 bg-slate-900/90 text-slate-100 text-sm px-4 py-3 rounded-2xl border border-slate-700/70 focus:outline-none focus:border-sky-400 placeholder-slate-500 transition'
+              className='min-w-0 flex-1 bg-slate-900/90 text-slate-100 text-base md:text-sm px-4 py-3 rounded-2xl border border-slate-700/70 focus:outline-none focus:border-sky-400 placeholder-slate-500 transition'
             />
             <button
               type='submit'

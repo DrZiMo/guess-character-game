@@ -145,7 +145,7 @@ const Character = () => {
             htmlFor='publicCheck'
             className='cursor-pointer text-sm font-medium'
           >
-            Public Room (Visible online)
+            Public Room
           </label>
         </div>
         <ErrorMessage message={error} />

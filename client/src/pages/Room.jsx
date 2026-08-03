@@ -133,7 +133,7 @@ const Room = () => {
       </div>
 
       {/* Real-time Chat Drawer */}
-      <Chat isOpened={true} />
+      <Chat />
     </div>
   )
 }

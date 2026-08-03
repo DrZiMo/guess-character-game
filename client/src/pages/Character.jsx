@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ErrorMessage from '../components/ErrorMessage'
 import headerText from '/Character.png'
 import { useNavigate } from 'react-router'
@@ -14,6 +14,7 @@ const Character = () => {
   const [avatar, setAvatar] = useState(avatars[7])
   const [show, setShow] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
+  const pendingRoomRef = useRef(null)
   const {
     setName,
     setCode,
@@ -27,15 +28,19 @@ const Character = () => {
   useEffect(() => {
     const handleRoomCreated = (roomData) => {
       setIsCreating(false)
+      const submitted = pendingRoomRef.current
+      pendingRoomRef.current = null
+
       const code = typeof roomData === 'object' ? roomData.code : roomData
       const id = typeof roomData === 'object' ? roomData._id : null
 
       setCode(code)
-      if (roomData?.category) setCategory(roomData.category)
+      if (submitted?.category) setCategory(submitted.category)
+      else if (roomData?.category) setCategory(roomData.category)
       if (id) setRoomId(id)
-      setName(nickName)
+      setName(submitted?.name ?? nickName)
       setIsCreator(true)
-      setImg(avatar)
+      setImg(submitted?.avatar ?? avatar)
 
       navigate('/room?u=creator', { replace: true })
     }
@@ -69,14 +74,17 @@ const Character = () => {
     if (!nickName.trim()) return setError('Enter your nickname')
     if (!category.trim()) return setError('Enter the category')
 
-    setIsCreating(true)
-
-    socket.emit('createRoom', {
+    const submittedRoom = {
       name: nickName.trim(),
       category: category.trim(),
       isPublic,
       avatar,
-    })
+    }
+
+    pendingRoomRef.current = submittedRoom
+    setIsCreating(true)
+
+    socket.emit('createRoom', submittedRoom)
   }
 
   return (

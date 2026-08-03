@@ -109,9 +109,6 @@ const Room = () => {
               <p className='text-xl font-bold text-yellow-300'>
                 {otherPlayer.name}
               </p>
-              <p className='text-xs text-green-400 font-medium'>
-                Ready to play!
-              </p>
             </div>
             {isCreator ? (
               <div>
@@ -123,7 +120,7 @@ const Room = () => {
                 </button>
               </div>
             ) : (
-              <p className='text-sm text-gray-300 italic'>
+              <p className='text-sm text-gray-300'>
                 Waiting for room host to start...
               </p>
             )}
@@ -136,7 +133,7 @@ const Room = () => {
       </div>
 
       {/* Real-time Chat Drawer */}
-      <Chat />
+      <Chat isOpened={true} />
     </div>
   )
 }

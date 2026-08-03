@@ -54,7 +54,17 @@ const Join = () => {
       socket.off('roomFull', handleRoomFull)
       socket.off('roomNotFound', handleRoomNotFound)
     }
-  }, [code, nickName, avatar, navigate, setCode, setRoomId, setPlayers, setName, setImg])
+  }, [
+    code,
+    nickName,
+    avatar,
+    navigate,
+    setCode,
+    setRoomId,
+    setPlayers,
+    setName,
+    setImg,
+  ])
 
   const handleJoin = () => {
     setNameError('')
@@ -116,7 +126,7 @@ const Join = () => {
             setRoomCode(e.target.value)
             setCodeError('')
           }}
-          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50 font-mono text-lg tracking-wider'
+          className='w-full bg-[rgba(255,255,255,0.25)] px-4 py-5 rounded-md border-b-5 border-white focus:outline-0 text-white disabled:opacity-50 text-lg tracking-wider'
         />
         <ErrorMessage message={codeError} />
         <button

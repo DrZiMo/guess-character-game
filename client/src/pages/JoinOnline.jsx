@@ -61,7 +61,17 @@ const JoinOnline = () => {
       socket.off('roomFull', handleRoomFull)
       socket.off('roomNotFound', handleRoomNotFound)
     }
-  }, [code, nickName, avatar, navigate, setCode, setRoomId, setPlayers, setName, setImg])
+  }, [
+    code,
+    nickName,
+    avatar,
+    navigate,
+    setCode,
+    setRoomId,
+    setPlayers,
+    setName,
+    setImg,
+  ])
 
   const handleJoin = () => {
     setNameError('')
@@ -81,7 +91,7 @@ const JoinOnline = () => {
     <div className='w-full h-full flex flex-col justify-center items-center'>
       <div className='text-center space-y-2'>
         <img src={headerText} alt='Header Text' />
-        <p className='text-white text-lg font-mono tracking-widest'>Room #{code}</p>
+        <p className='text-white text-2xl font-bold tracking-widest'>{code}</p>
       </div>
       <div className='flex flex-col w-[75%] gap-3 mt-10'>
         <div className='relative'>

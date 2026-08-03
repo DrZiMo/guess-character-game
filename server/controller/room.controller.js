@@ -13,18 +13,24 @@ export const deleteRoomMessages = async (roomId) => {
   }
 }
 
+// Build the visible public-room list for clients
+export const getPublicRoomsList = async () => {
+  const publicRooms = await Room.find({
+    isPublic: true,
+    numberOfPlayer: 1,
+    isStarted: false,
+  })
+    .populate('playerOneId', 'name pfp isOnline')
+    .sort({ createdAt: -1 })
+
+  return publicRooms.filter((room) => room.playerOneId?.isOnline !== false)
+}
+
 // Broadcast public available rooms to all connected clients via Socket.io
 export const broadcastPublicRooms = async (io) => {
   try {
     if (!io) return
-    const publicRooms = await Room.find({
-      isPublic: true,
-      numberOfPlayer: 1,
-      isStarted: false,
-    })
-      .populate('playerOneId', 'name pfp')
-      .sort({ createdAt: -1 })
-
+    const publicRooms = await getPublicRoomsList()
     io.emit('publicRoomsList', publicRooms)
   } catch (error) {
     console.error('Error broadcasting public rooms:', error)
@@ -103,11 +109,15 @@ export const getRooms = async (req, res) => {
     if (category) query.category = category
 
     const rooms = await Room.find(query)
-      .populate('playerOneId', 'name pfp')
-      .populate('playerTwoId', 'name pfp')
+      .populate('playerOneId', 'name pfp isOnline')
+      .populate('playerTwoId', 'name pfp isOnline')
       .sort({ createdAt: -1 })
 
-    return res.status(200).json({ success: true, data: rooms })
+    const visibleRooms = rooms.filter(
+      (room) => room.playerOneId?.isOnline !== false,
+    )
+
+    return res.status(200).json({ success: true, data: visibleRooms })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }

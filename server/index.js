@@ -13,6 +13,7 @@ import {
   deleteRoomMessages,
   broadcastPublicRooms,
   closeAndDeleteRoom,
+  getPublicRoomsList,
 } from './controller/room.controller.js'
 
 import roomRoutes from './routes/room.routes.js'
@@ -46,6 +47,34 @@ connectDB()
 
 const rooms = {}
 
+const removeRoomIfAllPlayersOffline = async (numericCode) => {
+  const room = rooms[numericCode]
+  if (!room) return false
+
+  const playerIds = room.players
+    .map((player) => player.playerId)
+    .filter(Boolean)
+
+  if (playerIds.length === 0) {
+    await closeAndDeleteRoom(numericCode, io)
+    delete rooms[numericCode]
+    return true
+  }
+
+  const onlinePlayers = await Player.find(
+    { _id: { $in: playerIds }, isOnline: true },
+    { _id: 1 },
+  )
+
+  if (onlinePlayers.length === 0) {
+    await closeAndDeleteRoom(numericCode, io)
+    delete rooms[numericCode]
+    return true
+  }
+
+  return false
+}
+
 io.on('connection', (socket) => {
   // Register player
   socket.on('register', async ({ browserId }) => {
@@ -68,14 +97,7 @@ io.on('connection', (socket) => {
   // Get available public rooms (real-time request)
   socket.on('getPublicRooms', async () => {
     try {
-      const publicRooms = await Room.find({
-        isPublic: true,
-        numberOfPlayer: 1,
-        isStarted: false,
-      })
-        .populate('playerOneId', 'name pfp')
-        .sort({ createdAt: -1 })
-
+      const publicRooms = await getPublicRoomsList()
       socket.emit('publicRoomsList', publicRooms)
     } catch (error) {
       console.error('Error sending public rooms:', error)
@@ -95,11 +117,13 @@ io.on('connection', (socket) => {
           name: name || 'Player 1',
           pfp: avatar || 'default_avatar.png',
           browserId: socket.id,
+          isOnline: true,
         })
         socket.playerId = player._id
       } else {
         if (name) player.name = name
         if (avatar) player.pfp = avatar
+        player.isOnline = true
         await player.save()
       }
 
@@ -187,10 +211,12 @@ io.on('connection', (socket) => {
           name: name || 'Player 2',
           pfp: avatar || 'default_avatar.png',
           browserId: socket.id,
+          isOnline: true,
         })
       } else {
         if (name) playerTwo.name = name
         if (avatar) playerTwo.pfp = avatar
+        playerTwo.isOnline = true
         await playerTwo.save()
       }
 
@@ -482,6 +508,12 @@ io.on('connection', (socket) => {
           const name = room.players[index].name
           room.players.splice(index, 1)
           io.to(code).emit('playerLeft', name)
+
+          const deleted = await removeRoomIfAllPlayersOffline(numericCode)
+
+          if (deleted) {
+            continue
+          }
 
           if (room.players.length === 0) {
             await closeAndDeleteRoom(numericCode, io)

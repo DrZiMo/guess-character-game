@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react'
 import { socket, backendURL } from '../constants'
 import { useGameStore } from '../store/useGameStore'
 
-const Chat = () => {
+const Chat = ({ isOpened }) => {
   const { roomCode, roomId, setRoomId } = useGameStore()
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(isOpened || false)
   const [unreadCount, setUnreadCount] = useState(0)
   const messagesEndRef = useRef(null)
 
@@ -77,7 +77,7 @@ const Chat = () => {
   }
 
   return (
-    <div className='fixed bottom-4 right-4 z-50 flex flex-col items-end'>
+    <div className='fixed top-4 right-4 z-50 flex flex-col items-end'>
       {/* Chat Window */}
       {isOpen && (
         <div className='w-80 sm:w-96 h-96 bg-gray-900/95 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-3 animate-in fade-in duration-200'>
@@ -103,7 +103,9 @@ const Chat = () => {
               </div>
             ) : (
               messages.map((msg, index) => {
-                const isSelf = msg.senderId?._id === socket.playerId || msg.senderId === socket.playerId
+                const isSelf =
+                  msg.senderId?._id === socket.playerId ||
+                  msg.senderId === socket.playerId
                 const senderName = msg.senderId?.name || 'Player'
                 const senderPfp = msg.senderId?.pfp
 
@@ -118,7 +120,7 @@ const Chat = () => {
                       <img
                         src={senderPfp}
                         alt={senderName}
-                        className='w-7 h-7 rounded-full border border-white/20 mt-1 flex-shrink-0'
+                        className='w-7 h-7 rounded-full border border-white/20 mt-1 shrink-0'
                       />
                     )}
                     <div
@@ -133,7 +135,9 @@ const Chat = () => {
                           {senderName}
                         </div>
                       )}
-                      <p className='break-words leading-relaxed'>{msg.text}</p>
+                      <p className='wrap-break-word leading-relaxed'>
+                        {msg.text}
+                      </p>
                     </div>
                   </div>
                 )

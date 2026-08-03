@@ -7,10 +7,10 @@ const messageSchema = new mongoose.Schema(
       ref: 'Room',
       required: true,
     },
-    senderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Player',
-      required: true,
+    sender: {
+      socketId: { type: String, required: true },
+      name: { type: String },
+      pfp: { type: String },
     },
     text: { type: String, required: true },
   },

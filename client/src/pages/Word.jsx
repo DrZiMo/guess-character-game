@@ -12,7 +12,7 @@ const Word = () => {
   const [word, setWord] = useState('')
   const [error, setError] = useState('')
   const [loading, setIsLoading] = useState(false)
-  const { roomCode, name, setPlayers } = useGameStore()
+  const { roomCode, name, setPlayers, category } = useGameStore()
 
   useEffect(() => {
     if (!roomCode) {
@@ -68,10 +68,14 @@ const Word = () => {
     <div className='w-full h-full flex flex-col justify-center items-center relative'>
       <div className='text-center space-y-5'>
         <img src={headerText} alt='Header Text' />
-        <p className='text-white text-2xl font-bold tracking-widest'>{roomCode}</p>
+        <p className='text-white text-2xl font-bold tracking-widest'>
+          {roomCode}
+        </p>
       </div>
       <div className='mt-5'>
-        <p className='text-white text-xl font-semibold'>Famous People</p>
+        <p className='text-white text-xl font-semibold'>
+          {category || 'Category'}
+        </p>
       </div>
       <div className='flex flex-col w-[75%] gap-3 mt-10'>
         <p className='text-white font-medium'>Enter your guess</p>
@@ -100,7 +104,9 @@ const Word = () => {
           {loading ? 'submitted' : 'submit'}
         </button>
         {loading ? (
-          <p className='text-white text-center animate-pulse'>Waiting for the other player...</p>
+          <p className='text-white text-center animate-pulse'>
+            Waiting for the other player...
+          </p>
         ) : null}
       </div>
 

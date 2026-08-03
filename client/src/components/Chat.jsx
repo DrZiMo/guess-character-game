@@ -103,11 +103,9 @@ const Chat = ({ isOpened }) => {
               </div>
             ) : (
               messages.map((msg, index) => {
-                const isSelf =
-                  msg.senderId?._id === socket.playerId ||
-                  msg.senderId === socket.playerId
-                const senderName = msg.senderId?.name || 'Player'
-                const senderPfp = msg.senderId?.pfp
+                const isSelf = msg.sender?.socketId === socket.id
+                const senderName = msg.sender?.name || 'Player'
+                const senderPfp = msg.sender?.pfp
 
                 return (
                   <div

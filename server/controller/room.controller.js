@@ -1,5 +1,4 @@
 import { generateCode } from '../lib/index.js'
-import { Player } from '../models/player.models.js'
 import { Room } from '../models/rooms.models.js'
 import { Message } from '../models/message.models.js'
 
@@ -19,11 +18,9 @@ export const getPublicRoomsList = async () => {
     isPublic: true,
     numberOfPlayer: 1,
     isStarted: false,
-  })
-    .populate('playerOneId', 'name pfp isOnline')
-    .sort({ createdAt: -1 })
+  }).sort({ createdAt: -1 })
 
-  return publicRooms.filter((room) => room.playerOneId?.isOnline !== false)
+  return publicRooms
 }
 
 // Broadcast public available rooms to all connected clients via Socket.io
@@ -66,12 +63,12 @@ export const closeAndDeleteRoom = async (code, io) => {
 // HTTP: Create Room
 export const createRoomHTTP = async (req, res) => {
   try {
-    const { playerOneId, category, isPublic } = req.body
+    const { playerOne, category, isPublic } = req.body
 
-    if (!playerOneId || !category) {
+    if (!playerOne || !category) {
       return res
         .status(400)
-        .json({ error: 'playerOneId and category are required' })
+        .json({ error: 'playerOne and category are required' })
     }
 
     let room
@@ -83,7 +80,7 @@ export const createRoomHTTP = async (req, res) => {
         } while (await Room.exists({ code }))
 
         room = await Room.create({
-          playerOneId,
+          playerOne,
           code,
           category,
           isPublic: isPublic ?? true,
@@ -108,16 +105,9 @@ export const getRooms = async (req, res) => {
     if (isPublic !== undefined) query.isPublic = isPublic === 'true'
     if (category) query.category = category
 
-    const rooms = await Room.find(query)
-      .populate('playerOneId', 'name pfp isOnline')
-      .populate('playerTwoId', 'name pfp isOnline')
-      .sort({ createdAt: -1 })
+    const rooms = await Room.find(query).sort({ createdAt: -1 })
 
-    const visibleRooms = rooms.filter(
-      (room) => room.playerOneId?.isOnline !== false,
-    )
-
-    return res.status(200).json({ success: true, data: visibleRooms })
+    return res.status(200).json({ success: true, data: rooms })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -138,10 +128,6 @@ export const getRoomByCodeOrId = async (req, res) => {
     if (!room) {
       return res.status(404).json({ error: 'Room not found' })
     }
-
-    await room.populate('playerOneId', 'name pfp')
-    await room.populate('playerTwoId', 'name pfp')
-
     return res.status(200).json({ success: true, data: room })
   } catch (error) {
     return res.status(500).json({ error: error.message })
@@ -160,13 +146,13 @@ export const updateRoom = async (req, res) => {
         { code: Number(identifier) },
         updates,
         {
-          new: true,
+          returnDocument: 'after',
           runValidators: true,
         },
       )
     } else {
       room = await Room.findByIdAndUpdate(identifier, updates, {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       })
     }

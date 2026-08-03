@@ -10,12 +10,19 @@ const Character = () => {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [nickName, setNickname] = useState('')
-  const [category, setCategory] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [avatar, setAvatar] = useState(avatars[7])
   const [show, setShow] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
-  const { setName, setCode, setRoomId, setIsCreator, setImg } = useGameStore()
+  const {
+    setName,
+    setCode,
+    setRoomId,
+    setIsCreator,
+    setImg,
+    setCategory,
+    category,
+  } = useGameStore()
 
   useEffect(() => {
     const handleRoomCreated = (roomData) => {
@@ -24,6 +31,7 @@ const Character = () => {
       const id = typeof roomData === 'object' ? roomData._id : null
 
       setCode(code)
+      if (roomData?.category) setCategory(roomData.category)
       if (id) setRoomId(id)
       setName(nickName)
       setIsCreator(true)
@@ -44,7 +52,17 @@ const Character = () => {
       socket.off('roomCreated', handleRoomCreated)
       socket.off('roomCreationFailed', handleRoomCreationFailed)
     }
-  }, [nickName, setIsCreator, setName, setCode, navigate, setImg, avatar, setRoomId])
+  }, [
+    nickName,
+    setIsCreator,
+    setName,
+    setCode,
+    navigate,
+    setImg,
+    avatar,
+    setRoomId,
+    setCategory,
+  ])
 
   const handleCreate = () => {
     setError('')
@@ -115,7 +133,10 @@ const Character = () => {
             onChange={(e) => setIsPublic(e.target.checked)}
             className='w-6 h-6 accent-primary rounded-md text-white cursor-pointer'
           />
-          <label htmlFor='publicCheck' className='cursor-pointer text-sm font-medium'>
+          <label
+            htmlFor='publicCheck'
+            className='cursor-pointer text-sm font-medium'
+          >
             Public Room (Visible online)
           </label>
         </div>

@@ -3,21 +3,17 @@ import { Message } from '../models/message.models.js'
 // Send / Create a message (HTTP)
 export const createMessage = async (req, res) => {
   try {
-    const { roomId, senderId, text } = req.body
+    const { roomId, sender, text } = req.body
 
-    if (!roomId || !senderId || !text) {
+    if (!roomId || !sender || !sender.socketId || !text) {
       return res
         .status(400)
-        .json({ error: 'roomId, senderId, and text are required' })
+        .json({ error: 'roomId, sender.socketId, and text are required' })
     }
 
-    const message = await Message.create({ roomId, senderId, text })
-    const populated = await Message.findById(message._id).populate(
-      'senderId',
-      'name pfp',
-    )
+    const message = await Message.create({ roomId, sender, text })
 
-    return res.status(201).json({ success: true, data: populated })
+    return res.status(201).json({ success: true, data: message })
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
@@ -27,10 +23,7 @@ export const createMessage = async (req, res) => {
 export const getMessagesByRoom = async (req, res) => {
   try {
     const { roomId } = req.params
-
-    const messages = await Message.find({ roomId })
-      .populate('senderId', 'name pfp')
-      .sort({ createdAt: 1 })
+    const messages = await Message.find({ roomId }).sort({ createdAt: 1 })
 
     return res.status(200).json({ success: true, data: messages })
   } catch (error) {

@@ -78,8 +78,8 @@ const JoinType = () => {
             rooms.map((room) => (
               <RoomCard
                 key={room._id || room.code}
-                avatar={room.playerOneId?.pfp || avatars[0]}
-                name={room.playerOneId?.name || 'Host'}
+                avatar={room.playerOne?.pfp || avatars[0]}
+                name={room.playerOne?.name || 'Host'}
                 category={room.category}
                 noPlayers={room.numberOfPlayer || 1}
                 code={room.code}

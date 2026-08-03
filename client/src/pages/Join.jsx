@@ -15,7 +15,8 @@ const Join = () => {
   const [avatar, setAvatar] = useState(avatars[8])
   const [show, setShow] = useState(false)
   const [isJoining, setIsJoining] = useState(false)
-  const { setCode, setRoomId, setPlayers, setName, setImg } = useGameStore()
+  const { setCode, setRoomId, setPlayers, setName, setImg, setCategory } =
+    useGameStore()
 
   useEffect(() => {
     const handlePlayerJoined = (players) => {
@@ -30,6 +31,7 @@ const Join = () => {
     const handleRoomJoined = (roomData) => {
       if (roomData?.roomId) {
         setRoomId(roomData.roomId)
+        if (roomData?.category) setCategory(roomData.category)
       }
     }
 
@@ -64,6 +66,7 @@ const Join = () => {
     setPlayers,
     setName,
     setImg,
+    setCategory,
   ])
 
   const handleJoin = () => {

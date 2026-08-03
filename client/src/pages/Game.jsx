@@ -8,7 +8,7 @@ import Chat from '../components/Chat'
 
 const Game = () => {
   const navigate = useNavigate()
-  const { roomCode, players } = useGameStore()
+  const { roomCode, players, category } = useGameStore()
   const [isShows, setIsShows] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
@@ -62,10 +62,15 @@ const Game = () => {
     })
   }
 
-  const currentPlayer = players.find((p) => p.socketId === socket.id || p.id === socket.id) || players[0]
-  const otherPlayer = players.find((p) => p.socketId !== socket.id && p.id !== socket.id) || players[1]
+  const currentPlayer =
+    players.find((p) => p.socketId === socket.id || p.id === socket.id) ||
+    players[0]
+  const otherPlayer =
+    players.find((p) => p.socketId !== socket.id && p.id !== socket.id) ||
+    players[1]
 
-  const currentPlayerPfp = currentPlayer?.avatar || currentPlayer?.pfp || avatars[0]
+  const currentPlayerPfp =
+    currentPlayer?.avatar || currentPlayer?.pfp || avatars[0]
   const otherPlayerPfp = otherPlayer?.avatar || otherPlayer?.pfp || avatars[1]
 
   return (
@@ -91,7 +96,9 @@ const Game = () => {
               alt={otherPlayer.name || 'Opponent'}
               className='w-16 h-16 rounded-full border-2 border-white/20 object-cover shadow'
             />
-            <p className='font-semibold text-yellow-300'>{otherPlayer.name || 'Opponent'}</p>
+            <p className='font-semibold text-yellow-300'>
+              {otherPlayer.name || 'Opponent'}
+            </p>
             <Card text={currentPlayer.word} />
           </div>
 
@@ -99,14 +106,19 @@ const Game = () => {
           <div className='flex-1 flex items-center justify-center w-full my-4'>
             {isShows ? (
               <div className='w-fit'>
-                <button className='primary-btn px-6 py-3 font-bold text-lg' onClick={handleRestart}>
+                <button
+                  className='primary-btn px-6 py-3 font-bold text-lg'
+                  onClick={handleRestart}
+                >
                   Restart Game
                 </button>
               </div>
             ) : (
               <div className='w-fit text-center bg-white/10 px-6 py-2 rounded-full border border-white/10'>
-                <p className='text-sm text-gray-300 uppercase tracking-widest'>Category</p>
-                <p className='font-bold text-lg text-yellow-300'>Famous People</p>
+                <p className='text-sm text-gray-300 uppercase tracking-widest'>
+                  Category
+                </p>
+                <p className='font-bold text-lg text-yellow-300'>{category}</p>
               </div>
             )}
           </div>
@@ -119,7 +131,9 @@ const Game = () => {
             >
               <Card text={isShows ? otherPlayer.word : 'none'} flip={true} />
             </div>
-            <p className='font-semibold text-blue-300'>{currentPlayer.name || 'You'}</p>
+            <p className='font-semibold text-blue-300'>
+              {currentPlayer.name || 'You'}
+            </p>
             <img
               src={currentPlayerPfp}
               alt={currentPlayer.name || 'You'}

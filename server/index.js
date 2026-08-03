@@ -4,7 +4,6 @@ import http from 'http'
 import dotenv from 'dotenv'
 
 import { connectDB } from './utils/db.js'
-import { Player } from './models/player.models.js'
 import { Room } from './models/rooms.models.js'
 import { Message } from './models/message.models.js'
 import { generateCode } from './lib/index.js'
@@ -17,7 +16,6 @@ import {
 } from './controller/room.controller.js'
 
 import roomRoutes from './routes/room.routes.js'
-import userRoutes from './routes/user.routes.js'
 import messageRoutes from './routes/message.routes.js'
 
 dotenv.config()
@@ -40,60 +38,14 @@ app.use(express.json())
 
 // Mount API routes
 app.use('/api/rooms', roomRoutes)
-app.use('/api/users', userRoutes)
 app.use('/api/messages', messageRoutes)
 
 connectDB()
 
+// In-memory rooms map keyed by numeric code
 const rooms = {}
 
-const removeRoomIfAllPlayersOffline = async (numericCode) => {
-  const room = rooms[numericCode]
-  if (!room) return false
-
-  const playerIds = room.players
-    .map((player) => player.playerId)
-    .filter(Boolean)
-
-  if (playerIds.length === 0) {
-    await closeAndDeleteRoom(numericCode, io)
-    delete rooms[numericCode]
-    return true
-  }
-
-  const onlinePlayers = await Player.find(
-    { _id: { $in: playerIds }, isOnline: true },
-    { _id: 1 },
-  )
-
-  if (onlinePlayers.length === 0) {
-    await closeAndDeleteRoom(numericCode, io)
-    delete rooms[numericCode]
-    return true
-  }
-
-  return false
-}
-
 io.on('connection', (socket) => {
-  // Register player
-  socket.on('register', async ({ browserId }) => {
-    try {
-      if (!browserId) return
-      const player = await Player.findOneAndUpdate(
-        { browserId },
-        { $set: { isOnline: true } },
-        { new: true, upsert: true, setDefaultsOnInsert: true },
-      )
-      socket.playerId = player._id
-      socket.browserId = browserId
-      socket.emit('registered', { playerId: player._id })
-      io.emit('playerStatusChanged', { playerId: player._id, isOnline: true })
-    } catch (error) {
-      console.error('Error registering socket player:', error)
-    }
-  })
-
   // Get available public rooms (real-time request)
   socket.on('getPublicRooms', async () => {
     try {
@@ -107,25 +59,8 @@ io.on('connection', (socket) => {
   // Create Room
   socket.on('createRoom', async ({ name, avatar, category, isPublic }) => {
     try {
-      let player
-      if (socket.playerId) {
-        player = await Player.findById(socket.playerId)
-      }
-
-      if (!player) {
-        player = await Player.create({
-          name: name || 'Player 1',
-          pfp: avatar || 'default_avatar.png',
-          browserId: socket.id,
-          isOnline: true,
-        })
-        socket.playerId = player._id
-      } else {
-        if (name) player.name = name
-        if (avatar) player.pfp = avatar
-        player.isOnline = true
-        await player.save()
-      }
+      const playerName = name || 'Player 1'
+      const playerPfp = avatar || 'default_avatar.png'
 
       let dbRoom
       while (!dbRoom) {
@@ -136,7 +71,11 @@ io.on('connection', (socket) => {
           } while (await Room.exists({ code }))
 
           dbRoom = await Room.create({
-            playerOneId: player._id,
+            playerOne: {
+              socketId: socket.id,
+              name: playerName,
+              pfp: playerPfp,
+            },
             code,
             category: category || 'General',
             isPublic: isPublic ?? true,
@@ -150,10 +89,9 @@ io.on('connection', (socket) => {
       const creatorObj = {
         id: socket.id,
         socketId: socket.id,
-        playerId: player._id.toString(),
-        name: player.name,
-        avatar: player.pfp,
-        pfp: player.pfp,
+        name: playerName,
+        avatar: playerPfp,
+        pfp: playerPfp,
         word: null,
       }
 
@@ -179,61 +117,42 @@ io.on('connection', (socket) => {
   })
 
   // Join Room
-  socket.on('joinRoom', async ({ code, name, avatar, playerId }) => {
+  socket.on('joinRoom', async ({ code, name, avatar }) => {
     try {
-      if (!code) {
-        return socket.emit('roomNotFound')
-      }
+      if (!code) return socket.emit('roomNotFound')
 
       const numericCode = Number(code.toString().trim())
-      if (isNaN(numericCode)) {
-        return socket.emit('roomNotFound')
-      }
+      if (isNaN(numericCode)) return socket.emit('roomNotFound')
 
-      const dbRoom = await Room.findOne({ code: numericCode }).populate(
-        'playerOneId',
-      )
+      const dbRoom = await Room.findOne({ code: numericCode })
+      if (!dbRoom) return socket.emit('roomNotFound')
 
-      if (!dbRoom) {
-        return socket.emit('roomNotFound')
-      }
-
-      if (dbRoom.numberOfPlayer >= 2 && dbRoom.playerTwoId) {
+      if (dbRoom.numberOfPlayer >= 2 && dbRoom.playerTwo) {
         return socket.emit('roomFull')
       }
 
-      let playerTwo
-      if (playerId) {
-        playerTwo = await Player.findById(playerId)
-      }
-      if (!playerTwo) {
-        playerTwo = await Player.create({
-          name: name || 'Player 2',
-          pfp: avatar || 'default_avatar.png',
-          browserId: socket.id,
-          isOnline: true,
-        })
-      } else {
-        if (name) playerTwo.name = name
-        if (avatar) playerTwo.pfp = avatar
-        playerTwo.isOnline = true
-        await playerTwo.save()
-      }
-
-      socket.playerId = playerTwo._id
+      const playerTwoName = name || 'Player 2'
+      const playerTwoPfp = avatar || 'default_avatar.png'
 
       const claimed = await Room.findOneAndUpdate(
         {
           code: numericCode,
-          $or: [{ playerTwoId: { $exists: false } }, { playerTwoId: null }],
+          $or: [{ playerTwo: { $exists: false } }, { playerTwo: null }],
         },
-        { $set: { playerTwoId: playerTwo._id, numberOfPlayer: 2 } },
-        { new: true },
+        {
+          $set: {
+            playerTwo: {
+              socketId: socket.id,
+              name: playerTwoName,
+              pfp: playerTwoPfp,
+            },
+            numberOfPlayer: 2,
+          },
+        },
+        { returnDocument: 'after' },
       )
 
-      if (!claimed) {
-        return socket.emit('roomFull')
-      }
+      if (!claimed) return socket.emit('roomFull')
 
       if (!rooms[numericCode]) {
         rooms[numericCode] = {
@@ -247,14 +166,14 @@ io.on('connection', (socket) => {
         }
       }
 
-      if (rooms[numericCode].players.length === 0 && dbRoom.playerOneId) {
+      if (rooms[numericCode].players.length === 0 && dbRoom.playerOne) {
         rooms[numericCode].players.push({
-          id: dbRoom.playerOneId.browserId || 'creator',
-          socketId: rooms[numericCode].creatorSocketId,
-          playerId: dbRoom.playerOneId._id.toString(),
-          name: dbRoom.playerOneId.name,
-          avatar: dbRoom.playerOneId.pfp,
-          pfp: dbRoom.playerOneId.pfp,
+          id: dbRoom.playerOne.socketId || 'creator',
+          socketId:
+            dbRoom.playerOne.socketId || rooms[numericCode].creatorSocketId,
+          name: dbRoom.playerOne.name,
+          avatar: dbRoom.playerOne.pfp,
+          pfp: dbRoom.playerOne.pfp,
           word: null,
         })
       }
@@ -262,17 +181,14 @@ io.on('connection', (socket) => {
       const playerTwoObj = {
         id: socket.id,
         socketId: socket.id,
-        playerId: playerTwo._id.toString(),
-        name: playerTwo.name,
-        avatar: playerTwo.pfp,
-        pfp: playerTwo.pfp,
+        name: playerTwoName,
+        avatar: playerTwoPfp,
+        pfp: playerTwoPfp,
         word: null,
       }
 
       const existingIndex = rooms[numericCode].players.findIndex(
-        (p) =>
-          p.socketId === socket.id ||
-          (p.playerId && p.playerId === playerTwo._id.toString()),
+        (p) => p.socketId === socket.id,
       )
 
       if (existingIndex !== -1) {
@@ -394,11 +310,11 @@ io.on('connection', (socket) => {
       await closeAndDeleteRoom(numericCode, io)
       delete rooms[numericCode]
     } else {
-      // If playerTwo leaves, reset database player count to 1
+      // If playerTwo leaves, reset database player count to 1 and remove playerTwo
       try {
         await Room.findOneAndUpdate(
           { code: numericCode },
-          { numberOfPlayer: 1, $unset: { playerTwoId: 1 } },
+          { numberOfPlayer: 1, $unset: { playerTwo: 1 } },
         )
         broadcastPublicRooms(io)
       } catch (err) {
@@ -430,8 +346,6 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async ({ roomId, text }) => {
     try {
       if (!roomId || typeof text !== 'string' || !text.trim()) return
-      if (!socket.playerId)
-        return socket.emit('messageFailed', 'Not registered')
 
       let activeRoomId = roomId
       if (!isNaN(roomId)) {
@@ -441,18 +355,37 @@ io.on('connection', (socket) => {
 
       if (!socket.rooms.has(activeRoomId.toString())) return
 
+      // Determine sender info from in-memory rooms
+      let sender = {
+        socketId: socket.id,
+        name: 'Player',
+        pfp: 'default_avatar.png',
+      }
+      const numericCode = Number(roomId)
+      const inMemoryRoom =
+        rooms[numericCode] ||
+        Object.values(rooms).find(
+          (r) => r.roomId?.toString() === activeRoomId.toString(),
+        )
+      if (inMemoryRoom) {
+        const player = inMemoryRoom.players.find(
+          (p) => p.socketId === socket.id,
+        )
+        if (player)
+          sender = {
+            socketId: player.socketId,
+            name: player.name,
+            pfp: player.pfp,
+          }
+      }
+
       const message = await Message.create({
         roomId: activeRoomId,
-        senderId: socket.playerId,
+        sender,
         text: text.trim().slice(0, 1000),
       })
 
-      const populatedMessage = await Message.findById(message._id).populate(
-        'senderId',
-        'name pfp',
-      )
-
-      io.to(activeRoomId.toString()).emit('newMessage', populatedMessage)
+      io.to(activeRoomId.toString()).emit('newMessage', message)
     } catch (error) {
       console.error('Error sending message:', error)
     }
@@ -469,9 +402,9 @@ io.on('connection', (socket) => {
         if (foundRoom) activeRoomId = foundRoom._id
       }
 
-      const messages = await Message.find({ roomId: activeRoomId })
-        .populate('senderId', 'name pfp')
-        .sort({ createdAt: 1 })
+      const messages = await Message.find({ roomId: activeRoomId }).sort({
+        createdAt: 1,
+      })
 
       socket.emit('messagesLoaded', messages)
     } catch (error) {
@@ -481,21 +414,6 @@ io.on('connection', (socket) => {
 
   // Disconnect -> Deletes room from database when creator disconnects or room becomes empty
   socket.on('disconnect', async () => {
-    if (socket.playerId) {
-      try {
-        await Player.findByIdAndUpdate(socket.playerId, {
-          isOnline: false,
-          lastSeen: new Date(),
-        })
-        io.emit('playerStatusChanged', {
-          playerId: socket.playerId,
-          isOnline: false,
-        })
-      } catch (err) {
-        console.error('Error updating player status on disconnect:', err)
-      }
-    }
-
     for (const [code, room] of Object.entries(rooms)) {
       const numericCode = Number(code)
       if (room.creatorSocketId === socket.id) {
@@ -509,12 +427,6 @@ io.on('connection', (socket) => {
           room.players.splice(index, 1)
           io.to(code).emit('playerLeft', name)
 
-          const deleted = await removeRoomIfAllPlayersOffline(numericCode)
-
-          if (deleted) {
-            continue
-          }
-
           if (room.players.length === 0) {
             await closeAndDeleteRoom(numericCode, io)
             delete rooms[code]
@@ -522,7 +434,7 @@ io.on('connection', (socket) => {
             try {
               await Room.findOneAndUpdate(
                 { code: numericCode },
-                { numberOfPlayer: 1, $unset: { playerTwoId: 1 } },
+                { numberOfPlayer: 1, $unset: { playerTwo: 1 } },
               )
               broadcastPublicRooms(io)
             } catch (err) {

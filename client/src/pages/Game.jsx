@@ -8,7 +8,7 @@ import Chat from '../components/Chat'
 
 const Game = () => {
   const navigate = useNavigate()
-  const { roomCode, players, category } = useGameStore()
+  const { roomCode, players, category, resetAll } = useGameStore()
   const [isShows, setIsShows] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
@@ -57,6 +57,8 @@ const Game = () => {
     if (roomCode) {
       socket.emit('endGame', roomCode)
     }
+
+    resetAll()
     navigate('/', {
       replace: true,
     })

@@ -16,4 +16,15 @@ export const useGameStore = create((set) => ({
   setIsCreator: (value) => set({ isCreator: value }),
   setImg: (img) => set({ img }),
   setPlayers: (players) => set({ players }),
+
+  resetAll: () =>
+    set({
+      roomCode: '',
+      roomId: '',
+      name: '',
+      category: '',
+      isCreator: false,
+      img: '',
+      players: [],
+    }),
 }))
